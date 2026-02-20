@@ -113,10 +113,23 @@ WHATSAPP_VERIFY_TOKEN = primis-ai-webhook-verify
 To fix the "Insufficient balance" error:
 
 1. **Primary**: OnSpace AI (if balance available)
-2. **Fallback**: OpenAI GPT-4 (using your OPENAI_API_KEY)
+2. **Fallback**: Google Gemini 2.0 Flash (using your GEMINI_API_KEY)
 3. **Last Resort**: Error message to user
 
 This ensures your WhatsApp AI **never stops working** even if OnSpace AI balance runs out.
+
+---
+
+## Personal WhatsApp Pairing (Baileys) - Not Supported
+
+**Technical Limitation**: The Baileys-style pairing code approach (personal WhatsApp linking) requires Node.js runtime. OnSpace Edge Functions use Deno runtime, which doesn't support Node.js WhatsApp libraries.
+
+**Alternative Options:**
+1. Use WhatsApp Business API (current implementation - free for low volume)
+2. Set up external Node.js service with Baileys and connect via webhook
+3. Request Node.js runtime support from OnSpace team
+
+The current WhatsApp Business API setup is the recommended approach for OnSpace platform.
 
 ---
 

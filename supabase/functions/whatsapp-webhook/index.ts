@@ -8,8 +8,7 @@ const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL');
 
 const apiKey = Deno.env.get('ONSPACE_AI_API_KEY');
 const baseUrl = Deno.env.get('ONSPACE_AI_BASE_URL');
-const openaiKey = Deno.env.get('OPENAI_API_KEY');
-const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+const geminiKey = Deno.env.get('GEMINI_API_KEY');
 
 Deno.serve(async (req) => {
   // Handle webhook verification (GET request)
@@ -93,35 +92,38 @@ Deno.serve(async (req) => {
         throw new Error('OnSpace AI failed');
       }
     } catch (error) {
-      console.log('OnSpace AI failed, trying OpenAI fallback...');
+      console.log('OnSpace AI failed, trying Gemini fallback...');
       
-      // Fallback to OpenAI
+      // Fallback to Gemini
       try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4',
-            messages: [
-              { 
-                role: 'system', 
-                content: 'You are PRIMIS AI WhatsApp assistant. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).'
+        const systemPrompt = 'You are PRIMIS AI WhatsApp assistant. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
+        
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [{ text: `${systemPrompt}\n\nUser: ${messageText}` }]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 500,
               },
-              { role: 'user', content: messageText }
-            ],
-            max_tokens: 500,
-          }),
-        });
+            }),
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();
-          aiResponse = data.choices?.[0]?.message?.content ?? '';
+          aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
         }
-      } catch (openaiError) {
-        console.error('OpenAI fallback failed:', openaiError);
+      } catch (geminiError) {
+        console.error('Gemini fallback failed:', geminiError);
         aiResponse = 'Sorry, I am currently experiencing technical difficulties. Please try again later.';
       }
     }

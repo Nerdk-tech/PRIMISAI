@@ -78,8 +78,7 @@ Created by: **Damini Codesphere Organization**
 ### Configured
 ✅ **ElevenLabs API** - Ultra-realistic premium TTS voices  
 ✅ **Whisper API** - Advanced speech-to-text transcription  
-✅ **OpenAI API** - Fallback for chat when OnSpace AI balance is low  
-✅ Anthropic API - Claude AI models  
+✅ **Gemini API** - Fallback for unlimited chats when OnSpace AI balance is low  
 ✅ Cloudinary API - Image processing  
 ✅ **WhatsApp Business API** - Two-way messaging integration  
 
@@ -151,11 +150,11 @@ See [WHATSAPP_SETUP.md](./WHATSAPP_SETUP.md) for detailed WhatsApp integration i
 PRIMIS AI includes automatic fallback to prevent service interruption:
 
 **Chat API Priority:**
-1. **OnSpace AI** (Primary - Gemini 3 Flash)
-2. **OpenAI GPT-4** (Fallback if OnSpace AI balance runs out)
+1. **OnSpace AI** (Primary - Gemini 3 Flash Preview)
+2. **Google Gemini 2.0 Flash** (Fallback if OnSpace AI balance runs out)
 3. **Error message** (Last resort)
 
-This ensures **unlimited chats** even when OnSpace AI credits are depleted, using your configured OpenAI API key as backup.
+This ensures **unlimited chats** even when OnSpace AI credits are depleted, using your configured Gemini API key as backup.
 
 ---
 

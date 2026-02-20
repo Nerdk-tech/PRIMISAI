@@ -3,7 +3,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 const apiKey = Deno.env.get('ONSPACE_AI_API_KEY');
 const baseUrl = Deno.env.get('ONSPACE_AI_BASE_URL');
-const openaiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiKey = Deno.env.get('GEMINI_API_KEY');
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -106,37 +106,55 @@ Deno.serve(async (req) => {
       content = data.choices?.[0]?.message?.content ?? '';
 
     } catch (primaryError: any) {
-      console.log('OnSpace AI failed, attempting OpenAI fallback...');
+      console.log('OnSpace AI failed, attempting Gemini fallback...');
       
-      // Fallback to OpenAI if available
-      if (openaiKey && (primaryError.message === 'BALANCE_ERROR' || primaryError.message.includes('OnSpace AI'))) {
+      // Fallback to Gemini if available
+      if (geminiKey && (primaryError.message === 'BALANCE_ERROR' || primaryError.message.includes('OnSpace AI'))) {
         try {
-          const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiKey}`,
-            },
-            body: JSON.stringify({
-              model: 'gpt-4',
-              messages: chatMessages,
-              max_tokens: 2000,
-            }),
-          });
+          // Convert messages to Gemini format
+          const geminiMessages = chatMessages
+            .filter(m => m.role !== 'system')
+            .map(m => ({
+              role: m.role === 'assistant' ? 'model' : 'user',
+              parts: [{ text: m.content }]
+            }));
 
-          if (!openaiResponse.ok) {
-            const openaiError = await openaiResponse.text();
-            console.error('OpenAI fallback error:', openaiError);
-            throw new Error(`OpenAI: ${openaiError}`);
+          // Prepend system prompt to first user message
+          if (geminiMessages.length > 0 && geminiMessages[0].role === 'user') {
+            const systemMsg = chatMessages.find(m => m.role === 'system');
+            if (systemMsg) {
+              geminiMessages[0].parts[0].text = `${systemMsg.content}\n\n${geminiMessages[0].parts[0].text}`;
+            }
           }
 
-          const openaiData = await openaiResponse.json();
-          content = openaiData.choices?.[0]?.message?.content ?? '';
-          console.log('Successfully used OpenAI fallback');
+          const geminiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: geminiMessages,
+                generationConfig: {
+                  temperature: 0.7,
+                  maxOutputTokens: 2048,
+                },
+              }),
+            }
+          );
+
+          if (!geminiResponse.ok) {
+            const geminiError = await geminiResponse.text();
+            console.error('Gemini fallback error:', geminiError);
+            throw new Error(`Gemini: ${geminiError}`);
+          }
+
+          const geminiData = await geminiResponse.json();
+          content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+          console.log('Successfully used Gemini fallback');
 
         } catch (fallbackError: any) {
-          console.error('OpenAI fallback failed:', fallbackError);
-          throw new Error('Both OnSpace AI and OpenAI failed. Please try again later.');
+          console.error('Gemini fallback failed:', fallbackError);
+          throw new Error('Both OnSpace AI and Gemini failed. Please try again later.');
         }
       } else {
         // No fallback available or different error
