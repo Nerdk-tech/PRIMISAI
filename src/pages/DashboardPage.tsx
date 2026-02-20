@@ -20,7 +20,8 @@ import {
   X,
   Volume2,
   Paperclip,
-  Loader2
+  Loader2,
+  Shield
 } from 'lucide-react';
 import type { Chat, Message, Persona } from '@/types';
 import ChatMessage from '@/components/features/ChatMessage';
@@ -51,7 +52,6 @@ export default function DashboardPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('alloy');
-  const [adminClicks, setAdminClicks] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -60,6 +60,9 @@ export default function DashboardPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if user is admin
+  const isAdmin = user?.email === 'damibotzinc@gmail.com';
 
   useEffect(() => {
     loadChats();
@@ -86,19 +89,6 @@ export default function DashboardPage() {
     if (settings?.selected_voice) {
       setSelectedVoice(settings.selected_voice);
     }
-  };
-
-  const handleLogoClick = () => {
-    setAdminClicks(prev => prev + 1);
-    if (adminClicks + 1 === 7) {
-      // Check if user is admin
-      if (user?.email === 'damibotzinc@gmail.com') {
-        navigate('/admin/whatsapp');
-        toast.success('Admin panel unlocked');
-      }
-      setAdminClicks(0);
-    }
-    setTimeout(() => setAdminClicks(0), 3000);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -491,10 +481,7 @@ export default function DashboardPage() {
       }`}>
         <div className="p-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div 
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 p-0.5 cursor-pointer"
-              onClick={handleLogoClick}
-            >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 p-0.5">
               <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
@@ -570,6 +557,16 @@ export default function DashboardPage() {
         )}
 
         <div className="p-4 border-t border-border space-y-2">
+          {isAdmin && (
+            <Button
+              onClick={() => navigate('/admin/whatsapp')}
+              variant="ghost"
+              className="w-full justify-start text-green-500 hover:text-green-400 hover:bg-green-500/10"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Admin Panel
+            </Button>
+          )}
           <Button
             onClick={() => setShowSettings(true)}
             variant="ghost"
