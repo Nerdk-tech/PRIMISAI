@@ -3,6 +3,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 const apiKey = Deno.env.get('ONSPACE_AI_API_KEY');
 const baseUrl = Deno.env.get('ONSPACE_AI_BASE_URL');
+const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -72,27 +73,76 @@ Deno.serve(async (req) => {
       ...messages,
     ];
 
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: chatMessages,
-        stream: false,
-      }),
-    });
+    let content = '';
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OnSpace AI Error:', errorText);
-      throw new Error(`OnSpace AI: ${errorText}`);
+    // Try OnSpace AI first
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: chatMessages,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OnSpace AI Error:', errorText);
+        
+        // Check if it's a balance issue
+        if (errorText.includes('Insufficient balance') || errorText.includes('balance')) {
+          throw new Error('BALANCE_ERROR');
+        }
+        
+        throw new Error(`OnSpace AI: ${errorText}`);
+      }
+
+      const data = await response.json();
+      content = data.choices?.[0]?.message?.content ?? '';
+
+    } catch (primaryError: any) {
+      console.log('OnSpace AI failed, attempting OpenAI fallback...');
+      
+      // Fallback to OpenAI if available
+      if (openaiKey && (primaryError.message === 'BALANCE_ERROR' || primaryError.message.includes('OnSpace AI'))) {
+        try {
+          const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiKey}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: chatMessages,
+              max_tokens: 2000,
+            }),
+          });
+
+          if (!openaiResponse.ok) {
+            const openaiError = await openaiResponse.text();
+            console.error('OpenAI fallback error:', openaiError);
+            throw new Error(`OpenAI: ${openaiError}`);
+          }
+
+          const openaiData = await openaiResponse.json();
+          content = openaiData.choices?.[0]?.message?.content ?? '';
+          console.log('Successfully used OpenAI fallback');
+
+        } catch (fallbackError: any) {
+          console.error('OpenAI fallback failed:', fallbackError);
+          throw new Error('Both OnSpace AI and OpenAI failed. Please try again later.');
+        }
+      } else {
+        // No fallback available or different error
+        throw primaryError;
+      }
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content ?? '';
 
     return new Response(
       JSON.stringify({ content }),

@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   Settings, 
-  LogOut,
-  Shield, 
+  LogOut, 
   MessageSquare, 
   Image, 
   Video, 
@@ -21,8 +20,7 @@ import {
   X,
   Volume2,
   Paperclip,
-  Loader2,
-  FileDown
+  Loader2
 } from 'lucide-react';
 import type { Chat, Message, Persona } from '@/types';
 import ChatMessage from '@/components/features/ChatMessage';
@@ -139,19 +137,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogoClick = () => {
-    setAdminClicks(prev => prev + 1);
-    if (adminClicks + 1 === 7) {
-      // Check if user is admin
-      if (user?.email === 'damibotzinc@gmail.com') {
-        navigate('/admin/whatsapp');
-        toast.success('Admin panel unlocked');
-      }
-      setAdminClicks(0);
-    }
-    setTimeout(() => setAdminClicks(0), 3000);
-  };
-
   const toggleRecording = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       toast.error('Microphone access not supported in this browser');
@@ -225,19 +210,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogoClick = () => {
-    setAdminClicks(prev => prev + 1);
-    if (adminClicks + 1 === 7) {
-      // Check if user is admin
-      if (user?.email === 'damibotzinc@gmail.com') {
-        navigate('/admin/whatsapp');
-        toast.success('Admin panel unlocked');
-      }
-      setAdminClicks(0);
-    }
-    setTimeout(() => setAdminClicks(0), 3000);
-  };
-
   const speakMessage = async (text: string) => {
     if (isSpeaking) {
       // Stop current playback
@@ -295,19 +267,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogoClick = () => {
-    setAdminClicks(prev => prev + 1);
-    if (adminClicks + 1 === 7) {
-      // Check if user is admin
-      if (user?.email === 'damibotzinc@gmail.com') {
-        navigate('/admin/whatsapp');
-        toast.success('Admin panel unlocked');
-      }
-      setAdminClicks(0);
-    }
-    setTimeout(() => setAdminClicks(0), 3000);
-  };
-
   const loadUserPersona = async () => {
     const { data: settings } = await supabase
       .from('user_settings')
@@ -324,19 +283,6 @@ export default function DashboardPage() {
       
       if (data) setPersona(data);
     }
-  };
-
-  const handleLogoClick = () => {
-    setAdminClicks(prev => prev + 1);
-    if (adminClicks + 1 === 7) {
-      // Check if user is admin
-      if (user?.email === 'damibotzinc@gmail.com') {
-        navigate('/admin/whatsapp');
-        toast.success('Admin panel unlocked');
-      }
-      setAdminClicks(0);
-    }
-    setTimeout(() => setAdminClicks(0), 3000);
   };
 
   const loadChats = async () => {
@@ -511,19 +457,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogoClick = () => {
-    setAdminClicks(prev => prev + 1);
-    if (adminClicks + 1 === 7) {
-      // Check if user is admin
-      if (user?.email === 'damibotzinc@gmail.com') {
-        navigate('/admin/whatsapp');
-        toast.success('Admin panel unlocked');
-      }
-      setAdminClicks(0);
-    }
-    setTimeout(() => setAdminClicks(0), 3000);
-  };
-
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -532,19 +465,6 @@ export default function DashboardPage() {
     } catch (error: any) {
       toast.error('Failed to logout');
     }
-  };
-
-  const handleLogoClick = () => {
-    setAdminClicks(prev => prev + 1);
-    if (adminClicks + 1 === 7) {
-      // Check if user is admin
-      if (user?.email === 'damibotzinc@gmail.com') {
-        navigate('/admin/whatsapp');
-        toast.success('Admin panel unlocked');
-      }
-      setAdminClicks(0);
-    }
-    setTimeout(() => setAdminClicks(0), 3000);
   };
 
   return (
