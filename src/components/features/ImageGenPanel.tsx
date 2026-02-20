@@ -188,7 +188,7 @@ export default function ImageGenPanel() {
       </div>
 
       {/* Right Panel - Preview */}
-      <div className="flex-1 p-6 flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-background overflow-auto">
+      <div className="flex-1 p-3 sm:p-6 flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-background overflow-auto">
         {loading ? (
           <div className="text-center space-y-4">
             <div className="flex justify-center">
@@ -197,13 +197,13 @@ export default function ImageGenPanel() {
             <p className="text-muted-foreground">Creating your image...</p>
           </div>
         ) : generatedImage ? (
-          <div className="w-full max-w-6xl">
+          <div className="w-full max-w-7xl">
             <img
               src={generatedImage}
               alt="Generated"
-              className="w-full h-auto max-h-[80vh] object-contain rounded-lg shadow-2xl border-2 border-primary/20"
+              className="w-full h-auto max-h-[85vh] object-contain rounded-lg shadow-2xl border-2 border-primary/20"
             />
-            <p className="text-sm text-muted-foreground mt-4 text-center px-4">{prompt}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-4 text-center px-2">{prompt}</p>
           </div>
         ) : (
           <div className="text-center space-y-4">

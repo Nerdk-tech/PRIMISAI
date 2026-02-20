@@ -221,7 +221,7 @@ export default function VideoGenPanel() {
       </div>
 
       {/* Right Panel - Preview */}
-      <div className="flex-1 p-6 flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-background">
+      <div className="flex-1 p-3 sm:p-6 flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-background">
         {loading ? (
           <div className="text-center space-y-4">
             <div className="flex justify-center">
@@ -231,13 +231,13 @@ export default function VideoGenPanel() {
             <p className="text-sm text-muted-foreground">This may take up to 2 minutes</p>
           </div>
         ) : generatedVideo ? (
-          <div className="max-w-4xl w-full">
+          <div className="max-w-5xl w-full">
             <video
               src={generatedVideo}
               controls
-              className="w-full h-auto rounded-lg shadow-2xl border-2 border-primary/20"
+              className="w-full h-auto max-h-[85vh] rounded-lg shadow-2xl border-2 border-primary/20"
             />
-            <p className="text-sm text-muted-foreground mt-4 text-center">{prompt}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-4 text-center px-2">{prompt}</p>
           </div>
         ) : (
           <div className="text-center space-y-4">

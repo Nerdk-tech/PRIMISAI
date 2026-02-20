@@ -27,7 +27,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { imageUrl, prompt, model = 'google/gemini-3-flash-preview' } = await req.json();
+    const { imageUrl, imageBase64, prompt, model = 'google/gemini-3-flash-preview' } = await req.json();
+
+    // Use base64 if provided, otherwise use URL
+    const imageData = imageBase64 || imageUrl;
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
             role: 'user', 
             content: [
               { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: imageUrl } }
+              { type: 'image_url', image_url: { url: imageData } }
             ]
           }
         ],

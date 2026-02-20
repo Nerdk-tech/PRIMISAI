@@ -54,7 +54,7 @@ Created by: **Damini Codesphere Organization**
 - **AI**: OnSpace AI (GPT-5, Gemini 3, Sora 2, Veo 3)
 - **Voice**: ElevenLabs TTS + OpenAI Whisper STT
 - **Database**: PostgreSQL with Row Level Security
-- **Storage**: Supabase Storage for generated media and uploads
+- **Storage**: Supabase Storage for generated media
 
 ---
 
@@ -63,7 +63,7 @@ Created by: **Damini Codesphere Organization**
 ### Included (OnSpace Cloud)
 ✅ OnSpace AI - Text generation, image generation, video generation, vision analysis  
 ✅ PostgreSQL Database  
-✅ File Storage (images, videos, user uploads)  
+✅ File Storage (images, videos)  
 ✅ User Authentication  
 ✅ Edge Functions  
 
@@ -82,23 +82,22 @@ Created by: **Damini Codesphere Organization**
 - **Smooth Animations** - Micro-interactions throughout
 - **Mobile-First** - Collapsible sidebar with hamburger menu
 - **Professional UI** - Premium feel with shadcn/ui components
-- **Large Image Display** - Generated images shown in high quality
+- **Large Preview Display** - Generated images/videos shown in high quality on all devices
 
 ---
 
 ## 📱 Responsive Design
 
-- **Mobile** (< 640px) - Optimized chat width, collapsible sidebar, touch targets
+- **Mobile** (< 640px) - Full-width previews, collapsible sidebar, optimized chat
 - **Tablet** (640px - 1024px) - Adaptive layout
 - **Desktop** (> 1024px) - Full sidebar with all features
 
 ---
 
-
 ## 🚀 Getting Started
 
 1. **Sign up** with your email
-2. **Check spam folder** for OTP if not received (4-digit code from PRIMIS AUTH)
+2. **Check spam folder** for OTP if not received (4-digit code)
 3. Complete registration with username and password
 4. Start chatting with AI
 5. **Upload images** in chat for vision analysis
@@ -121,7 +120,17 @@ Created by: **Damini Codesphere Organization**
 - Collapse the sidebar on mobile for more chat space
 - Switch personas in settings to change AI behavior
 - Save generated images/videos to access them later
-- Generated images are displayed large for better viewing
+- **Large previews** on all devices for better viewing experience
+
+---
+
+## ⚙️ Email Branding Configuration
+
+**To change email sender from "OnSpace Auth" to "PRIMIS AUTH":**
+
+OnSpace Cloud currently uses default email templates. Email branding customization may not be available in the current version. The OTP authentication works perfectly with the default branding.
+
+If you need custom email branding, contact OnSpace support at: **contact@onspace.ai**
 
 ---
 

@@ -100,28 +100,24 @@ export default function DashboardPage() {
     setUploadingImage(true);
 
     try {
-      const fileName = `${user!.id}/${crypto.randomUUID()}.${file.name.split('.').pop()}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('user-uploads')
-        .upload(fileName, file, {
-          contentType: file.type,
-          cacheControl: '3600',
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('user-uploads')
-        .getPublicUrl(fileName);
-
-      setUploadedImageUrl(publicUrl);
-      toast.success('Image uploaded - ready for analysis');
+      // Convert image to base64 for vision analysis
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setUploadedImageUrl(base64String);
+        toast.success('Image uploaded - ready for analysis');
+        setUploadingImage(false);
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read image');
+        setUploadingImage(false);
+      };
+      reader.readAsDataURL(file);
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error('Failed to upload image');
-    } finally {
       setUploadingImage(false);
+    } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -358,10 +354,10 @@ export default function DashboardPage() {
       let response;
 
       if (imageUrl) {
-        // Use vision analysis
+        // Use vision analysis with base64 image
         const { data, error } = await supabase.functions.invoke('ai-vision', {
           body: {
-            imageUrl,
+            imageBase64: imageUrl,
             prompt: input.trim() || 'Describe this image in detail',
           },
         });
