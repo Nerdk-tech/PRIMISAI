@@ -94,30 +94,6 @@ Created by: **Damini Codesphere Organization**
 
 ---
 
-## 🔧 Email Configuration
-
-### Setting Up PRIMIS AUTH Branding
-
-To customize authentication emails with "PRIMIS AUTH" branding:
-
-1. **Access OnSpace Cloud Dashboard**
-   - Click "Cloud" button in the top-right navigation
-   - Navigate to **Users** tab → **Auth Settings**
-
-2. **Configure Email Settings**
-   - Scroll to **Email Templates** section
-   - Update **Site Name** to: **PRIMIS AUTH**
-   - Optionally customize email templates (Confirmation, OTP, Reset Password, etc.)
-   - Save changes
-
-3. **Test the Configuration**
-   - Sign up with a new test email
-   - Check that emails arrive from "PRIMIS AUTH"
-   - **Remember to check spam folder**
-
-**Note**: Email customization is done through the OnSpace Cloud Dashboard, not in code.
-
----
 
 ## 🚀 Getting Started
 
