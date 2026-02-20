@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   Settings, 
-  LogOut, 
+  LogOut,
+  Shield, 
   MessageSquare, 
   Image, 
   Video, 
@@ -52,6 +53,7 @@ export default function DashboardPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('alloy');
+  const [adminClicks, setAdminClicks] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -88,6 +90,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogoClick = () => {
+    setAdminClicks(prev => prev + 1);
+    if (adminClicks + 1 === 7) {
+      // Check if user is admin
+      if (user?.email === 'damibotzinc@gmail.com') {
+        navigate('/admin/whatsapp');
+        toast.success('Admin panel unlocked');
+      }
+      setAdminClicks(0);
+    }
+    setTimeout(() => setAdminClicks(0), 3000);
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -122,6 +137,19 @@ export default function DashboardPage() {
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  const handleLogoClick = () => {
+    setAdminClicks(prev => prev + 1);
+    if (adminClicks + 1 === 7) {
+      // Check if user is admin
+      if (user?.email === 'damibotzinc@gmail.com') {
+        navigate('/admin/whatsapp');
+        toast.success('Admin panel unlocked');
+      }
+      setAdminClicks(0);
+    }
+    setTimeout(() => setAdminClicks(0), 3000);
   };
 
   const toggleRecording = async () => {
@@ -197,6 +225,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogoClick = () => {
+    setAdminClicks(prev => prev + 1);
+    if (adminClicks + 1 === 7) {
+      // Check if user is admin
+      if (user?.email === 'damibotzinc@gmail.com') {
+        navigate('/admin/whatsapp');
+        toast.success('Admin panel unlocked');
+      }
+      setAdminClicks(0);
+    }
+    setTimeout(() => setAdminClicks(0), 3000);
+  };
+
   const speakMessage = async (text: string) => {
     if (isSpeaking) {
       // Stop current playback
@@ -254,6 +295,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogoClick = () => {
+    setAdminClicks(prev => prev + 1);
+    if (adminClicks + 1 === 7) {
+      // Check if user is admin
+      if (user?.email === 'damibotzinc@gmail.com') {
+        navigate('/admin/whatsapp');
+        toast.success('Admin panel unlocked');
+      }
+      setAdminClicks(0);
+    }
+    setTimeout(() => setAdminClicks(0), 3000);
+  };
+
   const loadUserPersona = async () => {
     const { data: settings } = await supabase
       .from('user_settings')
@@ -270,6 +324,19 @@ export default function DashboardPage() {
       
       if (data) setPersona(data);
     }
+  };
+
+  const handleLogoClick = () => {
+    setAdminClicks(prev => prev + 1);
+    if (adminClicks + 1 === 7) {
+      // Check if user is admin
+      if (user?.email === 'damibotzinc@gmail.com') {
+        navigate('/admin/whatsapp');
+        toast.success('Admin panel unlocked');
+      }
+      setAdminClicks(0);
+    }
+    setTimeout(() => setAdminClicks(0), 3000);
   };
 
   const loadChats = async () => {
@@ -444,6 +511,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogoClick = () => {
+    setAdminClicks(prev => prev + 1);
+    if (adminClicks + 1 === 7) {
+      // Check if user is admin
+      if (user?.email === 'damibotzinc@gmail.com') {
+        navigate('/admin/whatsapp');
+        toast.success('Admin panel unlocked');
+      }
+      setAdminClicks(0);
+    }
+    setTimeout(() => setAdminClicks(0), 3000);
+  };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -452,6 +532,19 @@ export default function DashboardPage() {
     } catch (error: any) {
       toast.error('Failed to logout');
     }
+  };
+
+  const handleLogoClick = () => {
+    setAdminClicks(prev => prev + 1);
+    if (adminClicks + 1 === 7) {
+      // Check if user is admin
+      if (user?.email === 'damibotzinc@gmail.com') {
+        navigate('/admin/whatsapp');
+        toast.success('Admin panel unlocked');
+      }
+      setAdminClicks(0);
+    }
+    setTimeout(() => setAdminClicks(0), 3000);
   };
 
   return (
@@ -478,7 +571,10 @@ export default function DashboardPage() {
       }`}>
         <div className="p-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 p-0.5">
+            <div 
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 p-0.5 cursor-pointer"
+              onClick={handleLogoClick}
+            >
               <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>

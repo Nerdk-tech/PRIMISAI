@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { Toaster } from 'sonner';
 import WelcomePage from '@/pages/WelcomePage';
 import DashboardPage from '@/pages/DashboardPage';
+import AdminWhatsAppPanel from '@/pages/AdminWhatsAppPanel';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -64,6 +65,14 @@ function App() {
             element={
               <PrivateRoute>
                 <DashboardPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/whatsapp"
+            element={
+              <PrivateRoute>
+                <AdminWhatsAppPanel />
               </PrivateRoute>
             }
           />
