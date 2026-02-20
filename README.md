@@ -124,15 +124,6 @@ Created by: **Damini Codesphere Organization**
 
 ---
 
-## ⚙️ Email Branding Configuration
-
-**To change email sender from "OnSpace Auth" to "PRIMIS AUTH":**
-
-OnSpace Cloud currently uses default email templates. Email branding customization may not be available in the current version. The OTP authentication works perfectly with the default branding.
-
-If you need custom email branding, contact OnSpace support at: **contact@onspace.ai**
-
----
 
 ## 📧 Admin Contact
 
