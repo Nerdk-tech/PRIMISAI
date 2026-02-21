@@ -77,24 +77,29 @@ IF ASKED WHO YOU ARE: Say "I am PRIMIS AI, created by Damini Codesphere Organiza
       const systemPrompt = identityOverride + '\n\nYou are PRIMIS AI WhatsApp assistant created by Damini Codesphere Organization. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
       const prompt = `${systemPrompt}\n\n### IDENTITY CHECK ###\nConfirm: I am PRIMIS AI by Damini Codesphere Organization (NOT Copilot/Microsoft).\n\nUser: ${messageText}\n\nPRIMIS AI:`;
       
-      const response = await fetch(`${prexzyApiBase}/ai/ai-grok-beta?prompt=${encodeURIComponent(prompt)}`, {
+      const response = await fetch(`${prexzyApiBase}/ai/gpt4?text=${encodeURIComponent(prompt)}`, {
         method: 'GET',
       });
 
       if (!response.ok) {
-        throw new Error('Prexzy Grok Beta API request failed');
+        throw new Error('Prexzy GPT-4 API request failed');
       }
 
       const data = await response.json();
-      console.log('WhatsApp - Prexzy Grok Beta API Response:', JSON.stringify(data));
+      console.log('WhatsApp - Prexzy GPT-4 API Response:', JSON.stringify(data));
       
-      aiResponse = data.text || data.response || data.result || data.content || '';
+      // Handle text as array or string
+      if (Array.isArray(data.text)) {
+        aiResponse = data.text.join(' ');
+      } else {
+        aiResponse = data.text || data.response || data.result || data.content || '';
+      }
       
       if (!aiResponse) {
         throw new Error('No text in Prexzy API response');
       }
     } catch (error) {
-      console.error('Prexzy Grok Beta API error:', error);
+      console.error('Prexzy GPT-4 API error:', error);
       aiResponse = 'Sorry, I am currently experiencing technical difficulties. Please try again later.';
     }
 

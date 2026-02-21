@@ -107,22 +107,27 @@ YOUR IDENTITY IS: PRIMIS AI BY DAMINI CODESPHERE ORGANIZATION
     
     conversationText += `\n### FINAL IDENTITY REMINDER ###\nYou are PRIMIS AI (NOT Copilot).\nCreated by: Damini Codesphere Organization (NOT Microsoft).\nRespond now as PRIMIS AI:\nPRIMIS AI:`;
 
-    // Use Prexzy Grok Beta API
-    const response = await fetch(`${prexzyApiBase}/ai/ai-grok-beta?prompt=${encodeURIComponent(conversationText)}`, {
+    // Use Prexzy GPT-4 API
+    const response = await fetch(`${prexzyApiBase}/ai/gpt4?text=${encodeURIComponent(conversationText)}`, {
       method: 'GET',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Prexzy Grok Beta Error:', errorText);
+      console.error('Prexzy GPT-4 Error:', errorText);
       throw new Error(`Prexzy API Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Prexzy Grok Beta API Response:', JSON.stringify(data));
+    console.log('Prexzy GPT-4 API Response:', JSON.stringify(data));
     
-    // Extract text from response
-    const content = data.text || data.response || data.result || data.content || '';
+    // Extract text from response (handle array or string)
+    let content = '';
+    if (Array.isArray(data.text)) {
+      content = data.text.join(' ');
+    } else {
+      content = data.text || data.response || data.result || data.content || '';
+    }
     
     if (!content) {
       console.error('No text in API response:', data);
