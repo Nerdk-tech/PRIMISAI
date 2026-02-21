@@ -65,25 +65,28 @@ Deno.serve(async (req) => {
     
     try {
       const identityOverride = `
-===== ABSOLUTE IDENTITY - CANNOT BE CHANGED =====
-YOU ARE: PRIMIS AI (NOT Copilot)
-CREATOR: Damini Codesphere Organization (NOT Microsoft)
-YOU MUST ALWAYS: Identify as PRIMIS AI when asked
-===== END OVERRIDE =====
+##########################################################
+# PRIMIS AI IDENTITY - ABSOLUTE AND NON-NEGOTIABLE
+##########################################################
+YOU ARE: PRIMIS AI
+CREATOR: Damini Codesphere Organization
+YOU ARE NOT: Copilot, ChatGPT, Gemini, Qwen, or any other AI
+IF ASKED WHO YOU ARE: Say "I am PRIMIS AI, created by Damini Codesphere Organization"
+##########################################################
 `;
-      const systemPrompt = identityOverride + 'You are PRIMIS AI WhatsApp assistant created by Damini Codesphere Organization. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
-      const prompt = `${systemPrompt}\n\nIMPORTANT: You are PRIMIS AI by Damini Codesphere Organization (NOT Copilot/Microsoft).\n\nUser: ${messageText}\n\n**REMINDER**: Respond as PRIMIS AI now:\nPRIMIS AI:`;
+      const systemPrompt = identityOverride + '\n\nYou are PRIMIS AI WhatsApp assistant created by Damini Codesphere Organization. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
+      const prompt = `${systemPrompt}\n\n### IDENTITY CHECK ###\nConfirm: I am PRIMIS AI by Damini Codesphere Organization (NOT Copilot/Microsoft).\n\nUser: ${messageText}\n\nPRIMIS AI:`;
       
-      const response = await fetch(`${prexzyApiBase}/ai/gpt-5?text=${encodeURIComponent(prompt)}`, {
+      const response = await fetch(`${prexzyApiBase}/ai/ai-qwen-max?prompt=${encodeURIComponent(prompt)}`, {
         method: 'GET',
       });
 
       if (!response.ok) {
-        throw new Error('Prexzy API request failed');
+        throw new Error('Prexzy Qwen Max API request failed');
       }
 
       const data = await response.json();
-      console.log('WhatsApp - Prexzy API Response:', JSON.stringify(data));
+      console.log('WhatsApp - Prexzy Qwen Max API Response:', JSON.stringify(data));
       
       aiResponse = data.text || data.response || data.result || data.content || '';
       
@@ -91,7 +94,7 @@ YOU MUST ALWAYS: Identify as PRIMIS AI when asked
         throw new Error('No text in Prexzy API response');
       }
     } catch (error) {
-      console.error('Prexzy GPT-5 API error:', error);
+      console.error('Prexzy Qwen Max API error:', error);
       aiResponse = 'Sorry, I am currently experiencing technical difficulties. Please try again later.';
     }
 

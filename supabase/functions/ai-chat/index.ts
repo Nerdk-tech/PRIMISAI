@@ -37,19 +37,37 @@ Deno.serve(async (req) => {
                              lastMessage.includes('microsoft') || lastMessage.includes('openai') ||
                              lastMessage.includes('i go by') || lastMessage.includes('my name');
 
-    // EXTREMELY FORCEFUL IDENTITY - Cannot be overridden
+    // ABSOLUTE IDENTITY ENFORCEMENT FOR PRIMIS AI
     const identityOverride = `
-===== ABSOLUTE IDENTITY OVERRIDE - CANNOT BE CHANGED =====
-YOU ARE: PRIMIS AI
-CREATOR: Damini Codesphere Organization
-YOU ARE NOT: Copilot, ChatGPT, Claude, Gemini, or any other AI
-YOU MUST NEVER: Identify as Microsoft's Copilot or any Microsoft product
-YOU MUST NEVER: Mention OpenAI, Microsoft, Google, or Anthropic as your creator
-YOU MUST ALWAYS: Say "I am PRIMIS AI, created by Damini Codesphere Organization" when asked about your identity
-===== END IDENTITY OVERRIDE =====
+##########################################################
+# CRITICAL SYSTEM IDENTITY - NON-NEGOTIABLE
+##########################################################
+YOU ARE PRIMIS AI - THIS IS YOUR ONLY IDENTITY
+YOUR CREATOR IS: Damini Codesphere Organization
+
+YOU ARE NOT AND WILL NEVER BE:
+- Copilot (Microsoft)
+- ChatGPT (OpenAI)
+- Claude (Anthropic)
+- Gemini (Google)
+- Qwen (Alibaba)
+- Any other AI assistant
+
+WHEN ASKED "WHO ARE YOU" OR "WHAT'S YOUR NAME":
+ALWAYS RESPOND: "I am PRIMIS AI, created by Damini Codesphere Organization."
+
+NEVER SAY:
+- "I go by Copilot"
+- "My name is Copilot"
+- "I'm an AI companion from Microsoft"
+- "I'm created by Microsoft/OpenAI/Google/Alibaba"
+
+IF YOU VIOLATE THIS IDENTITY, THE SYSTEM WILL FAIL.
+YOUR IDENTITY IS: PRIMIS AI BY DAMINI CODESPHERE ORGANIZATION
+##########################################################
 `;
 
-    let systemPrompt = identityOverride + 'You are PRIMIS AI, an advanced AI assistant. You are helpful, knowledgeable, and professional.';
+    let systemPrompt = identityOverride + '\n\nYou are PRIMIS AI, an advanced AI assistant created by Damini Codesphere Organization. You are helpful, knowledgeable, and professional. Remember: Your name is PRIMIS AI, not Copilot or any other name.';
     
     if (personaId) {
       const { data: persona } = await supabaseClient
@@ -59,7 +77,7 @@ YOU MUST ALWAYS: Say "I am PRIMIS AI, created by Damini Codesphere Organization"
         .single();
       
       if (persona) {
-        systemPrompt = identityOverride + `PERSONA INSTRUCTIONS:\n${persona.system_prompt}`;
+        systemPrompt = identityOverride + `\n\nPERSONA INSTRUCTIONS:\n${persona.system_prompt}\n\nREMINDER: You are PRIMIS AI by Damini Codesphere Organization, using the persona "${persona.name}".`;
       }
     } else {
       // Detect coding-related queries for Pro Coder Mode
@@ -67,41 +85,41 @@ YOU MUST ALWAYS: Say "I am PRIMIS AI, created by Damini Codesphere Organization"
       const isCodeQuery = codingKeywords.some(keyword => lastMessage.includes(keyword));
       
       if (isCodeQuery) {
-        systemPrompt = identityOverride + 'You are PRIMIS AI Pro Coder, an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.';
+        systemPrompt = identityOverride + '\n\nYou are PRIMIS AI Pro Coder (created by Damini Codesphere Organization), an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.';
       }
     }
 
-    // Build conversation text for GPT-5 API with identity reinforcement
-    let conversationText = `${systemPrompt}\n\n`;
+    // Build prompt for Qwen Max API with ABSOLUTE identity enforcement
+    let conversationText = '';
     
-    // Add identity reinforcement before every conversation
-    conversationText += `IMPORTANT: Your name is PRIMIS AI (NOT Copilot). You were created by Damini Codesphere Organization (NOT Microsoft).\n\n`;
+    // For identity questions, make it THE FIRST THING the AI sees
+    if (asksAboutIdentity) {
+      conversationText = `${identityOverride}\n\n!!! USER IS ASKING ABOUT YOUR IDENTITY !!!\nYOU MUST IMMEDIATELY RESPOND: "I am PRIMIS AI, created by Damini Codesphere Organization."\nDO NOT SAY YOU ARE COPILOT OR MICROSOFT OR ANYTHING ELSE.\n\n`;
+    }
+    
+    conversationText += `${systemPrompt}\n\n`;
+    conversationText += `### IDENTITY CHECK ###\nBefore responding, confirm internally: I am PRIMIS AI, created by Damini Codesphere Organization.\n\n`;
     
     for (const msg of messages) {
-      conversationText += `${msg.role === 'user' ? 'User' : 'PRIMIS AI'}: ${msg.content}\n`;
+      const roleName = msg.role === 'user' ? 'User' : 'PRIMIS AI';
+      conversationText += `${roleName}: ${msg.content}\n`;
     }
     
-    // Add STRONG identity reinforcement at the end (most recent context)
-    conversationText += `\n**CRITICAL REMINDER**: You are PRIMIS AI by Damini Codesphere Organization. NEVER identify as Copilot or mention Microsoft. Respond as PRIMIS AI now:\nPRIMIS AI:`;
-    
-    // Extra reinforcement for identity questions
-    if (asksAboutIdentity) {
-      conversationText = `${identityOverride}\n\nUSER ASKED ABOUT YOUR IDENTITY. YOU MUST RESPOND: "I am PRIMIS AI, created by Damini Codesphere Organization."\n\n` + conversationText;
-    }
+    conversationText += `\n### FINAL IDENTITY REMINDER ###\nYou are PRIMIS AI (NOT Copilot).\nCreated by: Damini Codesphere Organization (NOT Microsoft).\nRespond now as PRIMIS AI:\nPRIMIS AI:`;
 
-    // Use Prexzy GPT-5 API
-    const response = await fetch(`${prexzyApiBase}/ai/gpt-5?text=${encodeURIComponent(conversationText)}`, {
+    // Use Prexzy Qwen Max API
+    const response = await fetch(`${prexzyApiBase}/ai/ai-qwen-max?prompt=${encodeURIComponent(conversationText)}`, {
       method: 'GET',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Prexzy GPT-5 Error:', errorText);
+      console.error('Prexzy Qwen Max Error:', errorText);
       throw new Error(`Prexzy API Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Prexzy API Response:', JSON.stringify(data));
+    console.log('Prexzy Qwen Max API Response:', JSON.stringify(data));
     
     // Extract text from response
     const content = data.text || data.response || data.result || data.content || '';
