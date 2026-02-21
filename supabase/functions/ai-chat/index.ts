@@ -107,19 +107,19 @@ YOUR IDENTITY IS: PRIMIS AI BY DAMINI CODESPHERE ORGANIZATION
     
     conversationText += `\n### FINAL IDENTITY REMINDER ###\nYou are PRIMIS AI (NOT Copilot).\nCreated by: Damini Codesphere Organization (NOT Microsoft).\nRespond now as PRIMIS AI:\nPRIMIS AI:`;
 
-    // Use Prexzy Qwen Max API
-    const response = await fetch(`${prexzyApiBase}/ai/ai-qwen-max?prompt=${encodeURIComponent(conversationText)}`, {
+    // Use Prexzy Grok Beta API
+    const response = await fetch(`${prexzyApiBase}/ai/ai-grok-beta?prompt=${encodeURIComponent(conversationText)}`, {
       method: 'GET',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Prexzy Qwen Max Error:', errorText);
+      console.error('Prexzy Grok Beta Error:', errorText);
       throw new Error(`Prexzy API Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Prexzy Qwen Max API Response:', JSON.stringify(data));
+    console.log('Prexzy Grok Beta API Response:', JSON.stringify(data));
     
     // Extract text from response
     const content = data.text || data.response || data.result || data.content || '';
