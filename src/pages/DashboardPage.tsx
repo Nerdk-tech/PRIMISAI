@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   // Voice state
   const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState('alloy');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -200,18 +200,26 @@ export default function DashboardPage() {
     }
   };
 
-  const speakMessage = async (text: string) => {
-    if (isSpeaking) {
-      // Stop current playback
+  const speakMessage = async (messageId: string, text: string) => {
+    // If this message is already speaking, stop it
+    if (speakingMessageId === messageId) {
       if (currentAudioRef.current) {
         currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
         currentAudioRef.current = null;
       }
-      setIsSpeaking(false);
+      setSpeakingMessageId(null);
       return;
     }
 
-    setIsSpeaking(true);
+    // Stop any other message that's currently playing
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
+    }
+
+    setSpeakingMessageId(messageId);
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-tts', {
@@ -239,12 +247,12 @@ export default function DashboardPage() {
       currentAudioRef.current = audio;
       
       audio.onended = () => {
-        setIsSpeaking(false);
+        setSpeakingMessageId(null);
         currentAudioRef.current = null;
       };
       
       audio.onerror = () => {
-        setIsSpeaking(false);
+        setSpeakingMessageId(null);
         currentAudioRef.current = null;
         toast.error('Failed to play audio');
       };
@@ -252,7 +260,7 @@ export default function DashboardPage() {
       await audio.play();
     } catch (error: any) {
       console.error('TTS error:', error);
-      setIsSpeaking(false);
+      setSpeakingMessageId(null);
       toast.error(error.message || 'Failed to generate speech');
     }
   };
@@ -357,10 +365,10 @@ export default function DashboardPage() {
       let response;
 
       if (imageUrl) {
-        // Use vision analysis with base64 image
+        // Use vision analysis with Prexzy GPT-4
         const { data, error } = await supabase.functions.invoke('ai-vision', {
           body: {
-            imageBase64: imageUrl,
+            imageUrl: imageUrl,
             prompt: input.trim() || 'Describe this image in detail',
           },
         });
@@ -661,13 +669,13 @@ export default function DashboardPage() {
                     <ChatMessage message={message} />
                     {message.role === 'assistant' && (
                       <button
-                        onClick={() => speakMessage(message.content)}
+                        onClick={() => speakMessage(message.id, message.content)}
                         className="ml-11 mt-2 text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                       >
-                        {isSpeaking ? (
+                        {speakingMessageId === message.id ? (
                           <>
                             <Volume2 className="w-3 h-3 animate-pulse" />
-                            Speaking...
+                            Stop reading
                           </>
                         ) : (
                           <>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Message } from '@/types';
-import { User, Sparkles, Copy, Check } from 'lucide-react';
+import { User, Sparkles, Copy, Check, Maximize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -13,6 +13,7 @@ interface ChatMessageProps {
 export default function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   const copyCode = async (code: string) => {
     await navigator.clipboard.writeText(code);
@@ -85,7 +86,20 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             {message.attachments.map((att, idx) => (
               <div key={idx}>
                 {att.type === 'image' && (
-                  <img src={att.url} alt={att.name} className="max-w-sm rounded-lg" />
+                  <div className="relative group">
+                    <img 
+                      src={att.url} 
+                      alt={att.name} 
+                      className="max-w-[200px] rounded-lg cursor-pointer hover:opacity-80 transition-opacity" 
+                      onClick={() => setExpandedImage(att.url)}
+                    />
+                    <button
+                      onClick={() => setExpandedImage(att.url)}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Maximize2 className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
                 )}
                 {att.type === 'video' && (
                   <video src={att.url} controls className="max-w-sm rounded-lg" />
@@ -99,6 +113,27 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       {isUser && (
         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
           <User className="w-4 h-4 text-background" />
+        </div>
+      )}
+
+      {/* Image Expansion Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setExpandedImage(null)}
+        >
+          <img 
+            src={expandedImage} 
+            alt="Expanded view" 
+            className="max-w-full max-h-full rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setExpandedImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 text-sm"
+          >
+            Close
+          </button>
         </div>
       )}
     </div>
