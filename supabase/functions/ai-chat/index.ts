@@ -33,41 +33,9 @@ Deno.serve(async (req) => {
     const asksAboutIdentity = lastMessage.includes('who are you') || lastMessage.includes('what are you') || 
                              lastMessage.includes('your name') || lastMessage.includes('who created') || 
                              lastMessage.includes('who made') || lastMessage.includes('who owns') || 
-                             lastMessage.includes('your creator') || lastMessage.includes('copilot') ||
-                             lastMessage.includes('microsoft') || lastMessage.includes('openai') ||
-                             lastMessage.includes('i go by') || lastMessage.includes('my name');
+                             lastMessage.includes('your creator') || lastMessage.includes('your owner');
 
-    // ABSOLUTE IDENTITY ENFORCEMENT FOR PRIMIS AI
-    const identityOverride = `
-##########################################################
-# CRITICAL SYSTEM IDENTITY - NON-NEGOTIABLE
-##########################################################
-YOU ARE PRIMIS AI - THIS IS YOUR ONLY IDENTITY
-YOUR CREATOR IS: Damini Codesphere Organization
-
-YOU ARE NOT AND WILL NEVER BE:
-- Copilot (Microsoft)
-- ChatGPT (OpenAI)
-- Claude (Anthropic)
-- Gemini (Google)
-- Qwen (Alibaba)
-- Any other AI assistant
-
-WHEN ASKED "WHO ARE YOU" OR "WHAT'S YOUR NAME":
-ALWAYS RESPOND: "I am PRIMIS AI, created by Damini Codesphere Organization."
-
-NEVER SAY:
-- "I go by Copilot"
-- "My name is Copilot"
-- "I'm an AI companion from Microsoft"
-- "I'm created by Microsoft/OpenAI/Google/Alibaba"
-
-IF YOU VIOLATE THIS IDENTITY, THE SYSTEM WILL FAIL.
-YOUR IDENTITY IS: PRIMIS AI BY DAMINI CODESPHERE ORGANIZATION
-##########################################################
-`;
-
-    let systemPrompt = identityOverride + '\n\nYou are PRIMIS AI, an advanced AI assistant created by Damini Codesphere Organization. You are helpful, knowledgeable, and professional. Remember: Your name is PRIMIS AI, not Copilot or any other name.';
+    let systemPrompt = 'You are PRIMIS AI, an advanced AI assistant created by Damini Codesphere Organization. You are helpful, knowledgeable, and professional.';
     
     if (personaId) {
       const { data: persona } = await supabaseClient
@@ -77,7 +45,7 @@ YOUR IDENTITY IS: PRIMIS AI BY DAMINI CODESPHERE ORGANIZATION
         .single();
       
       if (persona) {
-        systemPrompt = identityOverride + `\n\nPERSONA INSTRUCTIONS:\n${persona.system_prompt}\n\nREMINDER: You are PRIMIS AI by Damini Codesphere Organization, using the persona "${persona.name}".`;
+        systemPrompt = `You are PRIMIS AI created by Damini Codesphere Organization, using the persona "${persona.name}".\n\n${persona.system_prompt}`;
       }
     } else {
       // Detect coding-related queries for Pro Coder Mode
@@ -85,27 +53,23 @@ YOUR IDENTITY IS: PRIMIS AI BY DAMINI CODESPHERE ORGANIZATION
       const isCodeQuery = codingKeywords.some(keyword => lastMessage.includes(keyword));
       
       if (isCodeQuery) {
-        systemPrompt = identityOverride + '\n\nYou are PRIMIS AI Pro Coder (created by Damini Codesphere Organization), an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.';
+        systemPrompt = 'You are PRIMIS AI Pro Coder, created by Damini Codesphere Organization. You are an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.';
       }
     }
 
-    // Build prompt for Qwen Max API with ABSOLUTE identity enforcement
-    let conversationText = '';
+    // Build prompt with identity enforcement only when asked
+    let conversationText = `${systemPrompt}\n\n`;
     
-    // For identity questions, make it THE FIRST THING the AI sees
     if (asksAboutIdentity) {
-      conversationText = `${identityOverride}\n\n!!! USER IS ASKING ABOUT YOUR IDENTITY !!!\nYOU MUST IMMEDIATELY RESPOND: "I am PRIMIS AI, created by Damini Codesphere Organization."\nDO NOT SAY YOU ARE COPILOT OR MICROSOFT OR ANYTHING ELSE.\n\n`;
+      conversationText += `IMPORTANT: The user is asking about your identity. You must respond clearly that you are PRIMIS AI, created by Damini Codesphere Organization. Do not claim to be any other AI assistant.\n\n`;
     }
     
-    conversationText += `${systemPrompt}\n\n`;
-    conversationText += `### IDENTITY CHECK ###\nBefore responding, confirm internally: I am PRIMIS AI, created by Damini Codesphere Organization.\n\n`;
-    
     for (const msg of messages) {
-      const roleName = msg.role === 'user' ? 'User' : 'PRIMIS AI';
+      const roleName = msg.role === 'user' ? 'User' : 'Assistant';
       conversationText += `${roleName}: ${msg.content}\n`;
     }
     
-    conversationText += `\n### FINAL IDENTITY REMINDER ###\nYou are PRIMIS AI (NOT Copilot).\nCreated by: Damini Codesphere Organization (NOT Microsoft).\nRespond now as PRIMIS AI:\nPRIMIS AI:`;
+    conversationText += `\nAssistant:`;
 
     // Use Prexzy GPT-4 API
     const response = await fetch(`${prexzyApiBase}/ai/gpt4?text=${encodeURIComponent(conversationText)}`, {

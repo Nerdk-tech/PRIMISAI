@@ -60,22 +60,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get AI response using Prexzy GPT-5 API
+    // Get AI response using Prexzy GPT-4 API
     let aiResponse = '';
     
     try {
-      const identityOverride = `
-##########################################################
-# PRIMIS AI IDENTITY - ABSOLUTE AND NON-NEGOTIABLE
-##########################################################
-YOU ARE: PRIMIS AI
-CREATOR: Damini Codesphere Organization
-YOU ARE NOT: Copilot, ChatGPT, Gemini, Qwen, or any other AI
-IF ASKED WHO YOU ARE: Say "I am PRIMIS AI, created by Damini Codesphere Organization"
-##########################################################
-`;
-      const systemPrompt = identityOverride + '\n\nYou are PRIMIS AI WhatsApp assistant created by Damini Codesphere Organization. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
-      const prompt = `${systemPrompt}\n\n### IDENTITY CHECK ###\nConfirm: I am PRIMIS AI by Damini Codesphere Organization (NOT Copilot/Microsoft).\n\nUser: ${messageText}\n\nPRIMIS AI:`;
+      const lowerMessage = messageText.toLowerCase();
+      const asksAboutIdentity = lowerMessage.includes('who are you') || lowerMessage.includes('what are you') || 
+                               lowerMessage.includes('your name') || lowerMessage.includes('who created') || 
+                               lowerMessage.includes('who made') || lowerMessage.includes('your owner');
+      
+      let systemPrompt = 'You are PRIMIS AI WhatsApp assistant created by Damini Codesphere Organization. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
+      
+      if (asksAboutIdentity) {
+        systemPrompt += '\n\nIMPORTANT: The user is asking about your identity. You must respond clearly that you are PRIMIS AI, created by Damini Codesphere Organization.';
+      }
+      
+      const prompt = `${systemPrompt}\n\nUser: ${messageText}\n\nAssistant:`;
       
       const response = await fetch(`${prexzyApiBase}/ai/gpt4?text=${encodeURIComponent(prompt)}`, {
         method: 'GET',

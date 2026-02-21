@@ -662,7 +662,7 @@ export default function DashboardPage() {
                     {message.role === 'assistant' && (
                       <button
                         onClick={() => speakMessage(message.content)}
-                        className="ml-11 mt-2 text-xs text-muted-foreground hover:text-primary flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="ml-11 mt-2 text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                       >
                         {isSpeaking ? (
                           <>
