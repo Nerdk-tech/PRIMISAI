@@ -51,7 +51,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                     <div className="relative group">
                       <button
                         onClick={() => copyCode(codeString)}
-                        className="absolute top-2 right-2 p-2 bg-background/80 hover:bg-background rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        className="absolute top-2 right-2 p-2 bg-background/80 hover:bg-background rounded-md sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10"
+                        title="Copy code"
                       >
                         {copiedCode === codeString ? (
                           <Check className="w-4 h-4 text-green-500" />
