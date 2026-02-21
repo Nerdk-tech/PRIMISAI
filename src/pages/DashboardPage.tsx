@@ -128,73 +128,76 @@ export default function DashboardPage() {
   };
 
   const toggleRecording = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast.error('Microphone access not supported in this browser');
+    // Check if browser supports Web Speech API
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
       return;
     }
 
     if (isRecording) {
       // Stop recording
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
+      if (mediaRecorderRef.current) {
+        (mediaRecorderRef.current as any).stop();
+        mediaRecorderRef.current = null;
       }
       setIsRecording(false);
     } else {
-      // Start recording
+      // Start browser-based speech recognition (FREE - no API needed!)
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
 
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        recognition.onstart = () => {
+          setIsRecording(true);
+          toast.info('🎤 Listening... Click mic again to stop');
         };
 
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          
-          // Send to Whisper API for transcription
-          try {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'recording.webm');
-
-            const { data, error } = await supabase.functions.invoke('ai-stt', {
-              body: formData,
-            });
-
-            if (error) {
-              let errorMessage = error.message;
-              if (error instanceof FunctionsHttpError) {
-                try {
-                  const statusCode = error.context?.status ?? 500;
-                  const textContent = await error.context?.text();
-                  errorMessage = `[Code: ${statusCode}] ${textContent || error.message || 'Unknown error'}`;
-                } catch {
-                  errorMessage = `${error.message || 'Failed to read response'}`;
-                }
-              }
-              throw new Error(errorMessage);
+        recognition.onresult = (event: any) => {
+          interimTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            } else {
+              interimTranscript += transcript;
             }
+          }
+          // Update input with both final and interim results
+          setInput(finalTranscript + interimTranscript);
+        };
 
-            setInput(data.text);
-            toast.success('Voice transcribed!');
-          } catch (error: any) {
-            console.error('STT error:', error);
-            toast.error(error.message || 'Failed to transcribe audio');
-          } finally {
-            stream.getTracks().forEach(track => track.stop());
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsRecording(false);
+          if (event.error === 'no-speech') {
+            toast.error('No speech detected. Please try again.');
+          } else if (event.error === 'network') {
+            toast.error('Network error. Please check your connection.');
+          } else {
+            toast.error(`Speech recognition error: ${event.error}`);
           }
         };
 
-        mediaRecorder.start();
-        setIsRecording(true);
-        toast.info('Recording... Click again to stop');
+        recognition.onend = () => {
+          setIsRecording(false);
+          if (finalTranscript || interimTranscript) {
+            toast.success('✅ Voice transcribed!');
+          }
+        };
+
+        recognition.start();
+        mediaRecorderRef.current = recognition as any;
+        
       } catch (error: any) {
-        console.error('Microphone error:', error);
-        toast.error('Failed to access microphone');
+        console.error('Speech recognition error:', error);
+        toast.error('Failed to start speech recognition');
         setIsRecording(false);
       }
     }
