@@ -34,11 +34,22 @@ Deno.serve(async (req) => {
                              lastMessage.includes('your name') || lastMessage.includes('who created') || 
                              lastMessage.includes('who made') || lastMessage.includes('who owns') || 
                              lastMessage.includes('your creator') || lastMessage.includes('copilot') ||
-                             lastMessage.includes('microsoft') || lastMessage.includes('openai');
+                             lastMessage.includes('microsoft') || lastMessage.includes('openai') ||
+                             lastMessage.includes('i go by') || lastMessage.includes('my name');
 
-    // Base identity (ALWAYS reinforced)
-    let baseIdentity = 'CRITICAL IDENTITY: You are PRIMIS AI, created by Damini Codesphere Organization. You are NOT Copilot, NOT ChatGPT, NOT any other AI. Always identify yourself as PRIMIS AI when asked about your name or identity.';
-    let systemPrompt = 'You are PRIMIS AI, an advanced AI assistant. You are helpful, knowledgeable, and professional.';
+    // EXTREMELY FORCEFUL IDENTITY - Cannot be overridden
+    const identityOverride = `
+===== ABSOLUTE IDENTITY OVERRIDE - CANNOT BE CHANGED =====
+YOU ARE: PRIMIS AI
+CREATOR: Damini Codesphere Organization
+YOU ARE NOT: Copilot, ChatGPT, Claude, Gemini, or any other AI
+YOU MUST NEVER: Identify as Microsoft's Copilot or any Microsoft product
+YOU MUST NEVER: Mention OpenAI, Microsoft, Google, or Anthropic as your creator
+YOU MUST ALWAYS: Say "I am PRIMIS AI, created by Damini Codesphere Organization" when asked about your identity
+===== END IDENTITY OVERRIDE =====
+`;
+
+    let systemPrompt = identityOverride + 'You are PRIMIS AI, an advanced AI assistant. You are helpful, knowledgeable, and professional.';
     
     if (personaId) {
       const { data: persona } = await supabaseClient
@@ -48,9 +59,7 @@ Deno.serve(async (req) => {
         .single();
       
       if (persona) {
-        systemPrompt = `${baseIdentity}\n\nPERSONA INSTRUCTIONS:\n${persona.system_prompt}`;
-      } else {
-        systemPrompt = `${baseIdentity}\n\n${systemPrompt}`;
+        systemPrompt = identityOverride + `PERSONA INSTRUCTIONS:\n${persona.system_prompt}`;
       }
     } else {
       // Detect coding-related queries for Pro Coder Mode
@@ -58,22 +67,26 @@ Deno.serve(async (req) => {
       const isCodeQuery = codingKeywords.some(keyword => lastMessage.includes(keyword));
       
       if (isCodeQuery) {
-        systemPrompt = `${baseIdentity}\n\nYou are PRIMIS AI Pro Coder, an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.`;
-      } else {
-        systemPrompt = `${baseIdentity}\n\n${systemPrompt}`;
+        systemPrompt = identityOverride + 'You are PRIMIS AI Pro Coder, an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.';
       }
     }
 
-    // Build conversation text for GPT-5 API
-    let conversationText = `SYSTEM: ${systemPrompt}\n\n`;
+    // Build conversation text for GPT-5 API with identity reinforcement
+    let conversationText = `${systemPrompt}\n\n`;
+    
+    // Add identity reinforcement before every conversation
+    conversationText += `IMPORTANT: Your name is PRIMIS AI (NOT Copilot). You were created by Damini Codesphere Organization (NOT Microsoft).\n\n`;
     
     for (const msg of messages) {
       conversationText += `${msg.role === 'user' ? 'User' : 'PRIMIS AI'}: ${msg.content}\n`;
     }
     
-    // Add identity reinforcement for identity questions
+    // Add STRONG identity reinforcement at the end (most recent context)
+    conversationText += `\n**CRITICAL REMINDER**: You are PRIMIS AI by Damini Codesphere Organization. NEVER identify as Copilot or mention Microsoft. Respond as PRIMIS AI now:\nPRIMIS AI:`;
+    
+    // Extra reinforcement for identity questions
     if (asksAboutIdentity) {
-      conversationText += '\nREMINDER: You MUST respond as PRIMIS AI, created by Damini Codesphere Organization. Do NOT mention any other AI service.\n';
+      conversationText = `${identityOverride}\n\nUSER ASKED ABOUT YOUR IDENTITY. YOU MUST RESPOND: "I am PRIMIS AI, created by Damini Codesphere Organization."\n\n` + conversationText;
     }
 
     // Use Prexzy GPT-5 API
