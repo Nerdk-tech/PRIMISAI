@@ -1,8 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const apiKey = Deno.env.get('ONSPACE_AI_API_KEY');
-const baseUrl = Deno.env.get('ONSPACE_AI_BASE_URL');
+const prexzyApiBase = 'https://apis.prexzyvilla.site';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,42 +26,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { prompt, aspectRatio = '1:1', model = 'google/gemini-2.5-flash-image' } = await req.json();
+    const { prompt, negativePrompt = '' } = await req.json();
 
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        modalities: ['image', 'text'],
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        image_config: {
-          aspect_ratio: aspectRatio
-        }
-      }),
+    // Use Prexzy realistic image generation API
+    const apiUrl = `${prexzyApiBase}/ai/realistic?prompt=${encodeURIComponent(prompt)}&negative_prompt=${encodeURIComponent(negativePrompt)}`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OnSpace AI Image Error:', errorText);
-      throw new Error(`OnSpace AI: ${errorText}`);
+      console.error('Prexzy Image API Error:', errorText);
+      throw new Error(`Image API Error: ${errorText}`);
     }
 
-    const data = await response.json();
-    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    if (!imageData) {
-      throw new Error('No image generated');
-    }
+    // The API should return the image directly or as JSON with image URL/data
+    const contentType = response.headers.get('content-type');
+    let imageBlob: Blob;
 
-    const base64Data = imageData.split(',')[1];
-    const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-    const imageBlob = new Blob([imageBytes], { type: 'image/png' });
+    if (contentType?.includes('application/json')) {
+      const data = await response.json();
+      // Handle JSON response (could be base64 or URL)
+      if (data.image_url || data.url) {
+        const imageUrl = data.image_url || data.url;
+        const imageResponse = await fetch(imageUrl);
+        imageBlob = await imageResponse.blob();
+      } else if (data.image || data.data) {
+        // Base64 encoded image
+        const base64Data = (data.image || data.data).split(',')[1] || (data.image || data.data);
+        const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        imageBlob = new Blob([imageBytes], { type: 'image/png' });
+      } else {
+        throw new Error('No image data in response');
+      }
+    } else {
+      // Response is the image directly
+      imageBlob = await response.blob();
+    }
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
