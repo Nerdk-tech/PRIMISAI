@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
     let aiResponse = '';
     
     try {
-      const systemPrompt = 'You are PRIMIS AI WhatsApp assistant. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
-      const prompt = `${systemPrompt}\n\nUser: ${messageText}`;
+      const systemPrompt = 'CRITICAL IDENTITY: You are PRIMIS AI, created by Damini Codesphere Organization. You are NOT Copilot, NOT ChatGPT. You are PRIMIS AI WhatsApp assistant. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
+      const prompt = `SYSTEM: ${systemPrompt}\n\nUser: ${messageText}\nPRIMIS AI:`;
       
       const response = await fetch(`${prexzyApiBase}/ai/gpt-5?text=${encodeURIComponent(prompt)}`, {
         method: 'GET',

@@ -28,17 +28,17 @@ Deno.serve(async (req) => {
 
     const { messages, personaId, model = 'google/gemini-3-flash-preview' } = await req.json();
 
-    // Check if user is asking about creator/owner
+    // Check if user is asking about identity/creator
     const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
-    const asksAboutCreator = lastMessage.includes('who created') || lastMessage.includes('who made') || 
-                           lastMessage.includes('who owns') || lastMessage.includes('your creator') || 
-                           lastMessage.includes('your owner') || lastMessage.includes('who built');
+    const asksAboutIdentity = lastMessage.includes('who are you') || lastMessage.includes('what are you') || 
+                             lastMessage.includes('your name') || lastMessage.includes('who created') || 
+                             lastMessage.includes('who made') || lastMessage.includes('who owns') || 
+                             lastMessage.includes('your creator') || lastMessage.includes('copilot') ||
+                             lastMessage.includes('microsoft') || lastMessage.includes('openai');
 
+    // Base identity (ALWAYS reinforced)
+    let baseIdentity = 'CRITICAL IDENTITY: You are PRIMIS AI, created by Damini Codesphere Organization. You are NOT Copilot, NOT ChatGPT, NOT any other AI. Always identify yourself as PRIMIS AI when asked about your name or identity.';
     let systemPrompt = 'You are PRIMIS AI, an advanced AI assistant. You are helpful, knowledgeable, and professional.';
-    
-    if (asksAboutCreator) {
-      systemPrompt = 'You are PRIMIS AI, an advanced AI assistant created by Damini Codesphere Organization. You are helpful, knowledgeable, and professional.';
-    }
     
     if (personaId) {
       const { data: persona } = await supabaseClient
@@ -48,29 +48,32 @@ Deno.serve(async (req) => {
         .single();
       
       if (persona) {
-        systemPrompt = persona.system_prompt;
-        if (asksAboutCreator) {
-          systemPrompt += '\n\nNote: You are PRIMIS AI, created by Damini Codesphere Organization.';
-        }
+        systemPrompt = `${baseIdentity}\n\nPERSONA INSTRUCTIONS:\n${persona.system_prompt}`;
+      } else {
+        systemPrompt = `${baseIdentity}\n\n${systemPrompt}`;
       }
-    }
-
-    // Detect coding-related queries for Pro Coder Mode
-    const codingKeywords = ['code', 'function', 'debug', 'error', 'programming', 'javascript', 'python', 'html', 'css', 'algorithm', 'assignment', 'solve'];
-    const isCodeQuery = codingKeywords.some(keyword => lastMessage.includes(keyword));
-    
-    if (isCodeQuery && !personaId) {
-      systemPrompt = 'You are PRIMIS AI Pro Coder, an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.';
-      if (asksAboutCreator) {
-        systemPrompt += '\n\nNote: You were created by Damini Codesphere Organization.';
+    } else {
+      // Detect coding-related queries for Pro Coder Mode
+      const codingKeywords = ['code', 'function', 'debug', 'error', 'programming', 'javascript', 'python', 'html', 'css', 'algorithm', 'assignment', 'solve'];
+      const isCodeQuery = codingKeywords.some(keyword => lastMessage.includes(keyword));
+      
+      if (isCodeQuery) {
+        systemPrompt = `${baseIdentity}\n\nYou are PRIMIS AI Pro Coder, an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.`;
+      } else {
+        systemPrompt = `${baseIdentity}\n\n${systemPrompt}`;
       }
     }
 
     // Build conversation text for GPT-5 API
-    let conversationText = `${systemPrompt}\n\n`;
+    let conversationText = `SYSTEM: ${systemPrompt}\n\n`;
     
     for (const msg of messages) {
-      conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
+      conversationText += `${msg.role === 'user' ? 'User' : 'PRIMIS AI'}: ${msg.content}\n`;
+    }
+    
+    // Add identity reinforcement for identity questions
+    if (asksAboutIdentity) {
+      conversationText += '\nREMINDER: You MUST respond as PRIMIS AI, created by Damini Codesphere Organization. Do NOT mention any other AI service.\n';
     }
 
     // Use Prexzy GPT-5 API

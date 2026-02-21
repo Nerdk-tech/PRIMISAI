@@ -74,10 +74,17 @@ Deno.serve(async (req) => {
     const audioBlob = await response.blob();
     const audioBuffer = await audioBlob.arrayBuffer();
 
-    // Return audio as base64
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(audioBuffer))
-    );
+    // Convert to base64 safely (avoid stack overflow with large files)
+    const uint8Array = new Uint8Array(audioBuffer);
+    let binaryString = '';
+    const chunkSize = 8192; // Process in chunks to avoid stack overflow
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const base64Audio = btoa(binaryString);
 
     return new Response(
       JSON.stringify({ 
