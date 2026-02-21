@@ -1,9 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const apiKey = Deno.env.get('ONSPACE_AI_API_KEY');
-const baseUrl = Deno.env.get('ONSPACE_AI_BASE_URL');
-const geminiKey = Deno.env.get('GEMINI_API_KEY');
+const prexzyApiBase = 'https://apis.prexzyvilla.site';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -68,98 +66,38 @@ Deno.serve(async (req) => {
       }
     }
 
-    const chatMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages,
-    ];
+    // Build conversation text for GPT-5 API
+    let conversationText = `${systemPrompt}\n\n`;
+    
+    for (const msg of messages) {
+      conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
+    }
 
     let content = '';
 
-    // Try OnSpace AI first
     try {
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: chatMessages,
-          stream: false,
-        }),
+      // Use Prexzy GPT-5 API
+      const response = await fetch(`${prexzyApiBase}/ai/gpt-5?text=${encodeURIComponent(conversationText)}`, {
+        method: 'GET',
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('OnSpace AI Error:', errorText);
-        
-        // Check if it's a balance issue
-        if (errorText.includes('Insufficient balance') || errorText.includes('balance')) {
-          throw new Error('BALANCE_ERROR');
-        }
-        
-        throw new Error(`OnSpace AI: ${errorText}`);
+        console.error('Prexzy GPT-5 Error:', errorText);
+        throw new Error(`API Error: ${errorText}`);
       }
 
       const data = await response.json();
-      content = data.choices?.[0]?.message?.content ?? '';
-
-    } catch (primaryError: any) {
-      console.log('OnSpace AI failed, attempting Gemini fallback...');
+      content = data.response || data.result || data.text || data.content || '';
       
-      // Fallback to Gemini if available
-      if (geminiKey && (primaryError.message === 'BALANCE_ERROR' || primaryError.message.includes('OnSpace AI'))) {
-        try {
-          // Convert messages to Gemini format
-          const geminiMessages = chatMessages
-            .filter(m => m.role !== 'system')
-            .map(m => ({
-              role: m.role === 'assistant' ? 'model' : 'user',
-              parts: [{ text: m.content }]
-            }));
-
-          // Prepend system prompt to first user message
-          if (geminiMessages.length > 0 && geminiMessages[0].role === 'user') {
-            const systemMsg = chatMessages.find(m => m.role === 'system');
-            if (systemMsg) {
-              geminiMessages[0].parts[0].text = `${systemMsg.content}\n\n${geminiMessages[0].parts[0].text}`;
-            }
-          }
-
-          const geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: geminiMessages,
-                generationConfig: {
-                  temperature: 0.7,
-                  maxOutputTokens: 2048,
-                },
-              }),
-            }
-          );
-
-          if (!geminiResponse.ok) {
-            const geminiError = await geminiResponse.text();
-            console.error('Gemini fallback error:', geminiError);
-            throw new Error(`Gemini: ${geminiError}`);
-          }
-
-          const geminiData = await geminiResponse.json();
-          content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-          console.log('Successfully used Gemini fallback');
-
-        } catch (fallbackError: any) {
-          console.error('Gemini fallback failed:', fallbackError);
-          throw new Error('Both OnSpace AI and Gemini failed. Please try again later.');
-        }
-      } else {
-        // No fallback available or different error
-        throw primaryError;
+      if (!content) {
+        console.error('Unexpected API response:', data);
+        throw new Error('No response from API');
       }
+
+    } catch (error: any) {
+      console.error('Chat completion error:', error);
+      throw error;
     }
 
     return new Response(

@@ -6,9 +6,7 @@ const WHATSAPP_TOKEN = Deno.env.get('WHATSAPP_TOKEN');
 const WHATSAPP_PHONE_ID = Deno.env.get('WHATSAPP_PHONE_ID');
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL');
 
-const apiKey = Deno.env.get('ONSPACE_AI_API_KEY');
-const baseUrl = Deno.env.get('ONSPACE_AI_BASE_URL');
-const geminiKey = Deno.env.get('GEMINI_API_KEY');
+const prexzyApiBase = 'https://apis.prexzyvilla.site';
 
 Deno.serve(async (req) => {
   // Handle webhook verification (GET request)
@@ -62,70 +60,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get AI response
+    // Get AI response using Prexzy GPT-5 API
     let aiResponse = '';
     
     try {
-      // Try OnSpace AI first
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are PRIMIS AI WhatsApp assistant. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).'
-            },
-            { role: 'user', content: messageText }
-          ],
-        }),
+      const systemPrompt = 'You are PRIMIS AI WhatsApp assistant. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
+      const prompt = `${systemPrompt}\n\nUser: ${messageText}`;
+      
+      const response = await fetch(`${prexzyApiBase}/ai/gpt-5?text=${encodeURIComponent(prompt)}`, {
+        method: 'GET',
       });
 
       if (response.ok) {
         const data = await response.json();
-        aiResponse = data.choices?.[0]?.message?.content ?? '';
+        aiResponse = data.response || data.result || data.text || data.content || '';
+        
+        if (!aiResponse) {
+          throw new Error('No response from API');
+        }
       } else {
-        throw new Error('OnSpace AI failed');
+        throw new Error('API request failed');
       }
     } catch (error) {
-      console.log('OnSpace AI failed, trying Gemini fallback...');
-      
-      // Fallback to Gemini
-      try {
-        const systemPrompt = 'You are PRIMIS AI WhatsApp assistant. Keep responses concise and helpful. Format for WhatsApp (no markdown, use plain text).';
-        
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: 'user',
-                  parts: [{ text: `${systemPrompt}\n\nUser: ${messageText}` }]
-                }
-              ],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 500,
-              },
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        }
-      } catch (geminiError) {
-        console.error('Gemini fallback failed:', geminiError);
-        aiResponse = 'Sorry, I am currently experiencing technical difficulties. Please try again later.';
-      }
+      console.error('GPT-5 API error:', error);
+      aiResponse = 'Sorry, I am currently experiencing technical difficulties. Please try again later.';
     }
 
     // Send response back via WhatsApp
