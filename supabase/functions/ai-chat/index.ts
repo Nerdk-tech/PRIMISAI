@@ -73,31 +73,26 @@ Deno.serve(async (req) => {
       conversationText += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
     }
 
-    let content = '';
+    // Use Prexzy GPT-5 API
+    const response = await fetch(`${prexzyApiBase}/ai/gpt-5?text=${encodeURIComponent(conversationText)}`, {
+      method: 'GET',
+    });
 
-    try {
-      // Use Prexzy GPT-5 API
-      const response = await fetch(`${prexzyApiBase}/ai/gpt-5?text=${encodeURIComponent(conversationText)}`, {
-        method: 'GET',
-      });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Prexzy GPT-5 Error:', errorText);
+      throw new Error(`Prexzy API Error: ${errorText}`);
+    }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Prexzy GPT-5 Error:', errorText);
-        throw new Error(`API Error: ${errorText}`);
-      }
-
-      const data = await response.json();
-      content = data.response || data.result || data.text || data.content || '';
-      
-      if (!content) {
-        console.error('Unexpected API response:', data);
-        throw new Error('No response from API');
-      }
-
-    } catch (error: any) {
-      console.error('Chat completion error:', error);
-      throw error;
+    const data = await response.json();
+    console.log('Prexzy API Response:', JSON.stringify(data));
+    
+    // Extract text from response
+    const content = data.text || data.response || data.result || data.content || '';
+    
+    if (!content) {
+      console.error('No text in API response:', data);
+      throw new Error('No response text from Prexzy API');
     }
 
     return new Response(

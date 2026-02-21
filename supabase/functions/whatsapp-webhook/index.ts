@@ -71,18 +71,20 @@ Deno.serve(async (req) => {
         method: 'GET',
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        aiResponse = data.response || data.result || data.text || data.content || '';
-        
-        if (!aiResponse) {
-          throw new Error('No response from API');
-        }
-      } else {
-        throw new Error('API request failed');
+      if (!response.ok) {
+        throw new Error('Prexzy API request failed');
+      }
+
+      const data = await response.json();
+      console.log('WhatsApp - Prexzy API Response:', JSON.stringify(data));
+      
+      aiResponse = data.text || data.response || data.result || data.content || '';
+      
+      if (!aiResponse) {
+        throw new Error('No text in Prexzy API response');
       }
     } catch (error) {
-      console.error('GPT-5 API error:', error);
+      console.error('Prexzy GPT-5 API error:', error);
       aiResponse = 'Sorry, I am currently experiencing technical difficulties. Please try again later.';
     }
 
