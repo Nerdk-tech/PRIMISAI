@@ -14,22 +14,23 @@ Deno.serve(async (req) => {
       throw new Error('No image provided');
     }
 
-    // Build vision prompt for Prexzy GPT-4
-    const visionPrompt = `You are analyzing an image. ${prompt || 'Describe this image in detail'}\n\nImage data: ${imageUrl}`;
+    // Build vision analysis prompt for Gemini 2.5 Flash
+    const visionPrompt = `Analyze this image in detail. ${prompt || 'Describe what you see, including objects, people, colors, mood, and any text present.'}\n\nImage: ${imageUrl}`;
 
-    // Use Prexzy GPT-4 API for vision
-    const response = await fetch(`${prexzyApiBase}/ai/gpt4?text=${encodeURIComponent(visionPrompt)}`, {
+    // Use Prexzy Gemini API for vision (Gemini 2.5 Flash has multimodal vision support)
+    console.log('Sending to Gemini 2.5 Flash for vision analysis...');
+    const response = await fetch(`${prexzyApiBase}/ai/gemini?prompt=${encodeURIComponent(visionPrompt)}`, {
       method: 'GET',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Prexzy GPT-4 Vision Error:', errorText);
-      throw new Error(`Prexzy API Error: ${errorText}`);
+      console.error('Prexzy Gemini Vision Error:', errorText);
+      throw new Error(`Gemini Vision API Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Prexzy GPT-4 Vision Response:', JSON.stringify(data));
+    console.log('Prexzy Gemini Vision Response:', JSON.stringify(data));
     
     // Extract text from response (handle array or string)
     let description = '';
@@ -40,8 +41,8 @@ Deno.serve(async (req) => {
     }
     
     if (!description) {
-      console.error('No text in API response:', data);
-      throw new Error('No description from Prexzy API');
+      console.error('No text in Gemini API response:', data);
+      throw new Error('No description from Gemini Vision API');
     }
 
     return new Response(
