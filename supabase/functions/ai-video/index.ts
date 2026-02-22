@@ -70,14 +70,26 @@ Deno.serve(async (req) => {
         },
       });
 
+      const status = await response.json();
+      console.log('fal.ai video status:', status);
+
+      // Handle "Request is still in progress" response
+      if (status.detail === 'Request is still in progress') {
+        return new Response(
+          JSON.stringify({ 
+            id: predictionId,
+            status: 'processing',
+            progress: 50,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = JSON.stringify(status);
         console.error('fal.ai Video Check Error:', errorText);
         throw new Error(`fal.ai API Error: ${errorText}`);
       }
-
-      const status = await response.json();
-      console.log('fal.ai video status:', status);
 
       if (status.status === 'FAILED') {
         throw new Error(status.error || 'Video generation failed');
