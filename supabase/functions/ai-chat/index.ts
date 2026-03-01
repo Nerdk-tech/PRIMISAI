@@ -71,19 +71,19 @@ Deno.serve(async (req) => {
     
     conversationText += `\nAssistant:`;
 
-    // Use Prexzy GPT-4 API
-    const response = await fetch(`${prexzyApiBase}ai/ai4chat?prompt=${encodeURIComponent(conversationText)}`, {
+    // Use Prexzy ai4chat API
+    const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(conversationText)}`, {
       method: 'GET',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('PRIMIS LLM Error:', errorText);
-      throw new Error(`PRIMIS LLM Error: ${errorText}`);
+      console.error('Prexzy ai4chat Error:', errorText);
+      throw new Error(`Prexzy API Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('PRIMIS LLM API Response:', JSON.stringify(data));
+    console.log('Prexzy ai4chat API Response:', JSON.stringify(data));
     
     // Extract text from response (handle array or string)
     let content = '';
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     
     if (!content) {
       console.error('No text in API response:', data);
-      throw new Error('No response text from LLM');
+      throw new Error('No response text from Prexzy API');
     }
 
     return new Response(
@@ -111,4 +111,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-    
