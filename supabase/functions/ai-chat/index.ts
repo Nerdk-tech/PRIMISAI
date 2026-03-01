@@ -85,9 +85,13 @@ Deno.serve(async (req) => {
     const data = await response.json();
     console.log('Prexzy ai4chat API Response:', JSON.stringify(data));
     
-    // Extract text from response (handle array or string)
+    // Extract text from response (handle nested structure and arrays)
     let content = '';
-    if (Array.isArray(data.text)) {
+    
+    // Check nested data.data.response structure
+    if (data.data && data.data.response) {
+      content = data.data.response;
+    } else if (Array.isArray(data.text)) {
       content = data.text.join(' ');
     } else {
       content = data.text || data.response || data.result || data.content || '';
