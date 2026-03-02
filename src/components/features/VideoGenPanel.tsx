@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Download, Bookmark, Film, Sparkles, Rocket } from 'lucide-react';
+import { Loader2, Download, Bookmark, Film, Sparkles, Rocket, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
@@ -14,6 +14,7 @@ export default function VideoGenPanel() {
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [predictionId, setPredictionId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [showOverlay, setShowOverlay] = useState(true);
 
   const generateVideo = async () => {
     if (!prompt.trim()) {
@@ -145,67 +146,77 @@ export default function VideoGenPanel() {
   return (
     <div className="h-full flex relative">
       {/* Under Update Overlay */}
-      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="relative max-w-2xl mx-auto px-6">
-          {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl opacity-20 animate-pulse" />
-          
-          <div className="relative bg-gradient-to-br from-blue-950/90 via-purple-950/90 to-black/90 backdrop-blur-xl rounded-2xl border-2 border-blue-500/30 shadow-2xl p-8 sm:p-12 text-center space-y-6">
-            {/* Sparkle icons */}
-            <div className="flex justify-center gap-4 mb-4">
-              <Sparkles className="w-8 h-8 text-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <Rocket className="w-10 h-10 text-purple-400 animate-bounce" style={{ animationDelay: '200ms' }} />
-              <Sparkles className="w-8 h-8 text-pink-400 animate-bounce" style={{ animationDelay: '400ms' }} />
-            </div>
-
-            {/* Main heading with gradient text */}
-            <div>
-              <h2 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-3">
-                🚀 Under Development
-              </h2>
-              <div className="h-1 w-32 mx-auto bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full" />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-3">
-              <p className="text-xl sm:text-2xl font-semibold text-white">
-                Next-Gen AI Video Generation
-              </p>
-              <p className="text-base sm:text-lg text-gray-300 leading-relaxed">
-                We're crafting something <span className="text-transparent bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text font-bold">extraordinary</span>.
-                <br />Sora 2, Veo 3.1, and Kling AI models are being integrated for<br className="hidden sm:block" /> cinematic-quality video generation.
-              </p>
-            </div>
-
-            {/* Features grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-              <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-500/20">
-                <Film className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                <p className="text-sm text-blue-200 font-medium">1080p Quality</p>
+      {showOverlay && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
+          <div className="relative max-w-xl mx-auto px-4 sm:px-6">
+            {/* Close button */}
+            <button
+              onClick={() => setShowOverlay(false)}
+              className="absolute -top-2 -right-2 z-10 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-all hover:scale-110"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            {/* Animated gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl opacity-20 animate-pulse" />
+            
+            <div className="relative bg-gradient-to-br from-blue-950/90 via-purple-950/90 to-black/90 backdrop-blur-xl rounded-2xl border-2 border-blue-500/30 shadow-2xl p-6 sm:p-8 text-center space-y-4">
+              {/* Sparkle icons */}
+              <div className="flex justify-center gap-3 mb-3">
+                <Sparkles className="w-6 h-6 text-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <Rocket className="w-8 h-8 text-purple-400 animate-bounce" style={{ animationDelay: '200ms' }} />
+                <Sparkles className="w-6 h-6 text-pink-400 animate-bounce" style={{ animationDelay: '400ms' }} />
               </div>
-              <div className="bg-purple-900/30 rounded-lg p-4 border border-purple-500/20">
-                <Sparkles className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                <p className="text-sm text-purple-200 font-medium">AI Sound Effects</p>
-              </div>
-              <div className="bg-pink-900/30 rounded-lg p-4 border border-pink-500/20">
-                <Rocket className="w-6 h-6 text-pink-400 mx-auto mb-2" />
-                <p className="text-sm text-pink-200 font-medium">Lightning Fast</p>
-              </div>
-            </div>
 
-            {/* Status badge */}
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-400/30 rounded-full">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-gray-200">Active Development • Coming Soon</span>
-            </div>
+              {/* Main heading with gradient text */}
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+                  🚀 Under Development
+                </h2>
+                <div className="h-1 w-24 mx-auto bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full" />
+              </div>
 
-            {/* Shimmer effect */}
-            <div className="absolute inset-0 overflow-hidden rounded-2xl">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 animate-shimmer" />
+              {/* Description */}
+              <div className="space-y-2">
+                <p className="text-lg sm:text-xl font-semibold text-white">
+                  Next-Gen AI Video Generation
+                </p>
+                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                  We're crafting something <span className="text-transparent bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text font-bold">extraordinary</span>.
+                  <br />Sora 2, Veo 3.1, and Kling AI models coming soon.
+                </p>
+              </div>
+
+              {/* Features grid */}
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                <div className="bg-blue-900/30 rounded-lg p-3 border border-blue-500/20">
+                  <Film className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                  <p className="text-xs text-blue-200 font-medium">1080p Quality</p>
+                </div>
+                <div className="bg-purple-900/30 rounded-lg p-3 border border-purple-500/20">
+                  <Sparkles className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+                  <p className="text-xs text-purple-200 font-medium">AI Sound</p>
+                </div>
+                <div className="bg-pink-900/30 rounded-lg p-3 border border-pink-500/20">
+                  <Rocket className="w-5 h-5 text-pink-400 mx-auto mb-1" />
+                  <p className="text-xs text-pink-200 font-medium">Fast Gen</p>
+                </div>
+              </div>
+
+              {/* Status badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-400/30 rounded-full">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-xs sm:text-sm font-medium text-gray-200">Coming Soon</span>
+              </div>
+
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 animate-shimmer" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       {/* Left Panel - Controls */}
       <div className="w-96 border-r border-border p-6 space-y-6">
         <div>

@@ -17,35 +17,29 @@ Deno.serve(async (req) => {
     const visionPrompt = prompt || 'Analyze this image in detail. Describe what you see, including objects, people, colors, mood, and any text present.';
     const systemPrompt = 'You are a helpful AI assistant with vision analysis capabilities. Analyze images carefully and provide detailed, accurate descriptions.';
     
-    console.log('Sending to Prexzy Claude for vision analysis...');
+    console.log('Sending to Prexzy ai4chat for vision analysis...');
     
-    // Use Prexzy Claude API with POST request to handle image data
-    const response = await fetch(`${prexzyApiBase}/ai/claude`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: `${visionPrompt}\n\nImage data: ${imageUrl}`,
-        system: systemPrompt,
-      }),
+    // Use Prexzy ai4chat with image data
+    const fullPrompt = `${systemPrompt}\n\n${visionPrompt}\n\nImage: ${imageUrl}`;
+    const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(fullPrompt)}`, {
+      method: 'GET',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Prexzy Claude Vision Error:', errorText);
-      throw new Error(`Prexzy Claude API Error: ${errorText}`);
+      console.error('Prexzy Vision Error:', errorText);
+      throw new Error(`Prexzy API Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Prexzy Claude Vision Response:', JSON.stringify(data));
+    console.log('Prexzy Vision Response:', JSON.stringify(data));
     
-    // Extract description from response
-    const description = data.response || data.data?.response || data.text || '';
+    // Extract description from response (check nested structure first)
+    const description = data.data?.response || data.response || data.text || '';
     
     if (!description) {
-      console.error('No description in Claude response:', data);
-      throw new Error('No description from Prexzy Claude Vision API');
+      console.error('No description in response:', data);
+      throw new Error('No description from Prexzy Vision API');
     }
 
     return new Response(
