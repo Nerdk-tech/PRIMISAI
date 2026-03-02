@@ -1,6 +1,6 @@
 import { corsHeaders } from '../_shared/cors.ts';
 
-const prexzyApiBase = 'https://apis.prexzyvilla.site';
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,37 +14,55 @@ Deno.serve(async (req) => {
       throw new Error('No image provided');
     }
 
-    // Build vision analysis prompt for Claude Haiku 4.5
+    // Extract base64 data from data URL
+    const base64Data = imageUrl.split(',')[1];
+    if (!base64Data) {
+      throw new Error('Invalid image format - expected data URL');
+    }
+
     const visionPrompt = prompt || 'Analyze this image in detail. Describe what you see, including objects, people, colors, mood, and any text present.';
     
-    // System prompt for vision analysis
-    const systemPrompt = 'You are an expert image analyst. Provide detailed, accurate descriptions of images. Focus on objects, people, colors, mood, text, and overall composition.';
-
-    // Use Prexzy Claude API for vision (Claude Haiku 4.5 has multimodal vision support)
-    console.log('Sending to Claude Haiku 4.5 for vision analysis...');
+    console.log('Sending to Google Gemini Flash for vision analysis...');
     
-    // Claude endpoint expects text and system parameters, and the image is sent as base64
-    const claudeUrl = `${prexzyApiBase}/ai/claude?text=${encodeURIComponent(visionPrompt + '\n\nImage: ' + imageUrl)}&system=${encodeURIComponent(systemPrompt)}`;
-    
-    const response = await fetch(claudeUrl, {
-      method: 'GET',
-    });
+    // Use Google Gemini Flash API with proper multimodal format
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: visionPrompt },
+              {
+                inline_data: {
+                  mime_type: 'image/jpeg',
+                  data: base64Data
+                }
+              }
+            ]
+          }]
+        })
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Prexzy Claude Vision Error:', errorText);
-      throw new Error(`Claude Vision API Error: ${errorText}`);
+      console.error('Gemini Vision Error:', errorText);
+      throw new Error(`Gemini API Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Prexzy Claude Vision Response:', JSON.stringify(data));
+    console.log('Gemini Vision Response:', JSON.stringify(data));
     
-    // Extract response from Claude API
-    const description = data.response || data.text || data.result || data.content || '';
+    // Extract description from Gemini response
+    const description = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     if (!description) {
-      console.error('No response in Claude API response:', data);
-      throw new Error('No description from Claude Vision API');
+      console.error('No description in Gemini response:', data);
+      throw new Error('No description from Gemini Vision API');
     }
 
     return new Response(
