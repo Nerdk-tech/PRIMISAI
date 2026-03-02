@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const falApiKey = Deno.env.get('FAL_API_KEY');
+const shortApiKey = Deno.env.get('SHORTAPI_AI_KEY');
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,77 +26,66 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { action, prompt, predictionId, model = 'fal-ai/ltx-video', seconds = 5 } = await req.json();
+    const { action, prompt, predictionId, model = 'kwaivgi/kling-2.6/text-to-video', seconds = 5 } = await req.json();
 
     if (action === 'create') {
-      console.log('Creating video with fal.ai LTX-Video model...');
+      console.log('Creating video with ShortAPI Kling 2.6 model...');
       
-      const response = await fetch('https://queue.fal.run/fal-ai/ltx-video', {
+      const response = await fetch('https://api.shortapi.ai/v1/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Key ${falApiKey}`,
+          'Authorization': `Bearer ${shortApiKey}`,
         },
         body: JSON.stringify({
-          prompt: prompt,
-          num_inference_steps: 50,
-          guidance_scale: 3,
-          num_frames: seconds * 24, // 24 fps
-          height: 512,
-          width: 768,
+          model: model,
+          input: {
+            prompt: prompt,
+            duration: seconds,
+            aspect_ratio: '16:9',
+            negative_prompt: 'blurry, low quality, distorted, deformed',
+          },
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('fal.ai Video Create Error:', errorText);
-        throw new Error(`fal.ai API Error: ${errorText}`);
+        console.error('ShortAPI Video Create Error:', errorText);
+        throw new Error(`ShortAPI API Error: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('fal.ai video job created:', data);
+      console.log('ShortAPI video job created:', data);
       
       return new Response(
-        JSON.stringify({ id: data.request_id, status: 'processing' }),
+        JSON.stringify({ id: data.id, status: 'processing' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (action === 'check') {
-      const response = await fetch(`https://queue.fal.run/fal-ai/ltx-video/requests/${predictionId}`, {
+      const response = await fetch(`https://api.shortapi.ai/v1/status/${predictionId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Key ${falApiKey}`,
+          'Authorization': `Bearer ${shortApiKey}`,
         },
       });
 
-      const status = await response.json();
-      console.log('fal.ai video status:', status);
-
-      // Handle "Request is still in progress" response
-      if (status.detail === 'Request is still in progress') {
-        return new Response(
-          JSON.stringify({ 
-            id: predictionId,
-            status: 'processing',
-            progress: 50,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
       if (!response.ok) {
-        const errorText = JSON.stringify(status);
-        console.error('fal.ai Video Check Error:', errorText);
-        throw new Error(`fal.ai API Error: ${errorText}`);
+        const errorText = await response.text();
+        console.error('ShortAPI Video Check Error:', errorText);
+        throw new Error(`ShortAPI API Error: ${errorText}`);
       }
 
-      if (status.status === 'FAILED') {
+      const status = await response.json();
+      console.log('ShortAPI video status:', status);
+
+      if (status.status === 'failed') {
         throw new Error(status.error || 'Video generation failed');
       }
 
-      if (status.status === 'COMPLETED' && status.output?.video?.url) {
-        const videoUrl = status.output.video.url;
+      if (status.status === 'succeeded' && status.output?.video) {
+        const videoUrl = status.output.video;
         const videoResponse = await fetch(videoUrl);
         const arrayBuffer = await videoResponse.arrayBuffer();
         const videoBlob = new Blob([arrayBuffer], { type: 'video/mp4' });
@@ -136,8 +125,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           id: predictionId,
-          status: status.status === 'IN_QUEUE' || status.status === 'IN_PROGRESS' ? 'processing' : status.status.toLowerCase(),
-          progress: status.status === 'IN_PROGRESS' ? 50 : 0,
+          status: status.status === 'queued' || status.status === 'processing' ? 'processing' : status.status,
+          progress: status.progress || (status.status === 'processing' ? 50 : 0),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
