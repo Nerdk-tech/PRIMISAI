@@ -440,14 +440,36 @@ export default function DashboardPage() {
 
       setMessages(prev => [...prev, assistantMessage]);
 
+      // Auto-generate descriptive title after first exchange (like ChatGPT)
       if (messages.length === 0) {
-        const title = userContent.slice(0, 50) + (userContent.length > 50 ? '...' : '');
-        await supabase
-          .from('chats')
-          .update({ title })
-          .eq('id', activeChat.id);
-        
-        setChats(chats.map(c => c.id === activeChat.id ? { ...c, title } : c));
+        try {
+          const { data: titleData, error: titleError } = await supabase.functions.invoke('ai-title', {
+            body: {
+              firstUserMessage: userContent,
+              firstAssistantMessage: response.content,
+            },
+          });
+
+          if (!titleError && titleData?.title) {
+            await supabase
+              .from('chats')
+              .update({ title: titleData.title })
+              .eq('id', activeChat.id);
+            
+            setChats(chats.map(c => c.id === activeChat.id ? { ...c, title: titleData.title } : c));
+            setActiveChat(prev => prev ? { ...prev, title: titleData.title } : prev);
+          }
+        } catch (error) {
+          console.error('Title generation failed:', error);
+          // Fallback to simple title
+          const fallbackTitle = userContent.slice(0, 50) + (userContent.length > 50 ? '...' : '');
+          await supabase
+            .from('chats')
+            .update({ title: fallbackTitle })
+            .eq('id', activeChat.id);
+          
+          setChats(chats.map(c => c.id === activeChat.id ? { ...c, title: fallbackTitle } : c));
+        }
       }
 
     } catch (error: any) {
@@ -754,14 +776,27 @@ export default function DashboardPage() {
                       onChange={handleImageUpload}
                       className="hidden"
                     />
-                    <input
-                      type="text"
+                    <textarea
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                      placeholder={uploadedImageUrl ? 'Ask about the image...' : isRecording ? 'Listening...' : 'Type your message...'}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                      placeholder={uploadedImageUrl ? 'Ask about the image...' : isRecording ? 'Listening...' : 'Type your message... (Shift+Enter for new line)'}
                       disabled={loading}
-                      className="flex-1 bg-muted border border-border rounded-full px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                      rows={1}
+                      className="flex-1 bg-muted border border-border rounded-2xl px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-hidden min-h-[40px] lg:min-h-[48px] max-h-48"
+                      style={{
+                        height: 'auto',
+                      }}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = target.scrollHeight + 'px';
+                      }}
                     />
                     <Button 
                       onClick={sendMessage}

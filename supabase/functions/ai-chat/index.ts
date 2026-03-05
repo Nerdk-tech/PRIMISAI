@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build minimal conversation context (last 10 messages only for speed)
-    const recentMessages = messages.slice(-10);
+    // Build conversation context (last 20 messages for better context while maintaining speed)
+    const recentMessages = messages.slice(-20);
     let conversationText = asksAboutIdentity 
       ? `${systemPrompt} IMPORTANT: State you are PRIMIS AI by Damini Codesphere.\n\n`
       : `${systemPrompt}\n\n`;
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     // Optimized API call with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for large requests
     
     const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(conversationText)}`, {
       method: 'GET',
