@@ -439,8 +439,9 @@ export default function DashboardPage() {
         });
 
       setMessages(prev => [...prev, assistantMessage]);
+      setLoading(false); // Stop typing indicator immediately after response
 
-      // Auto-generate descriptive title after first exchange (like ChatGPT)
+      // Auto-generate descriptive title after first exchange (like ChatGPT) - runs in background
       if (messages.length === 0) {
         try {
           const { data: titleData, error: titleError } = await supabase.functions.invoke('ai-title', {
@@ -475,7 +476,6 @@ export default function DashboardPage() {
     } catch (error: any) {
       console.error('Chat error:', error);
       toast.error(error.message || 'Failed to get response');
-    } finally {
       setLoading(false);
     }
   };
