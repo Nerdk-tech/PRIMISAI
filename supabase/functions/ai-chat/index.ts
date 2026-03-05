@@ -30,9 +30,11 @@ Deno.serve(async (req) => {
 
     const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
     const asksAboutIdentity = lastMessage.includes('who are you') || lastMessage.includes('who created') || 
-                             lastMessage.includes('who made') || lastMessage.includes('your owner');
+                             lastMessage.includes('who made') || lastMessage.includes('your owner') ||
+                             lastMessage.includes('what are you') || lastMessage.includes('tell me about yourself');
 
-    let systemPrompt = 'You are PRIMIS AI created by Damini Codesphere Organization.';
+    // Natural ChatGPT-like system prompt - minimal and conversational
+    let systemPrompt = 'You are a helpful AI assistant. Respond naturally and conversationally.';
     
     // Only fetch persona if explicitly provided (optimize DB query)
     if (personaId) {
@@ -43,15 +45,20 @@ Deno.serve(async (req) => {
         .single();
       
       if (persona) {
-        systemPrompt = `PRIMIS AI - ${persona.name}: ${persona.system_prompt}`;
+        systemPrompt = persona.system_prompt;
       }
     }
 
     // Build conversation context (last 20 messages for better context while maintaining speed)
     const recentMessages = messages.slice(-20);
-    let conversationText = asksAboutIdentity 
-      ? `${systemPrompt} IMPORTANT: State you are PRIMIS AI by Damini Codesphere.\n\n`
-      : `${systemPrompt}\n\n`;
+    let conversationText = '';
+    
+    // Only mention identity when explicitly asked
+    if (asksAboutIdentity) {
+      conversationText = `You are PRIMIS AI, created by Damini Codesphere Organization. ${systemPrompt}\n\n`;
+    } else {
+      conversationText = `${systemPrompt}\n\n`;
+    }
     
     for (const msg of recentMessages) {
       conversationText += `${msg.role === 'user' ? 'User' : 'AI'}: ${msg.content}\n`;
