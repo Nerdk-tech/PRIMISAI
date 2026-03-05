@@ -26,55 +26,49 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { messages, personaId, model = 'google/gemini-3-flash-preview' } = await req.json();
+    const { messages, personaId } = await req.json();
 
-    // Check if user is asking about identity/creator
     const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
-    const asksAboutIdentity = lastMessage.includes('who are you') || lastMessage.includes('what are you') || 
-                             lastMessage.includes('your name') || lastMessage.includes('who created') || 
-                             lastMessage.includes('who made') || lastMessage.includes('who owns') || 
-                             lastMessage.includes('your creator') || lastMessage.includes('your owner');
+    const asksAboutIdentity = lastMessage.includes('who are you') || lastMessage.includes('who created') || 
+                             lastMessage.includes('who made') || lastMessage.includes('your owner');
 
-    let systemPrompt = 'You are PRIMIS AI, an advanced AI assistant created by Damini Codesphere Organization. You are helpful, knowledgeable, and professional.';
+    let systemPrompt = 'You are PRIMIS AI created by Damini Codesphere Organization.';
     
+    // Only fetch persona if explicitly provided (optimize DB query)
     if (personaId) {
       const { data: persona } = await supabaseClient
         .from('personas')
-        .select('*')
+        .select('system_prompt,name')
         .eq('id', personaId)
         .single();
       
       if (persona) {
-        systemPrompt = `You are PRIMIS AI created by Damini Codesphere Organization, using the persona "${persona.name}".\n\n${persona.system_prompt}`;
-      }
-    } else {
-      // Detect coding-related queries for Pro Coder Mode
-      const codingKeywords = ['code', 'function', 'debug', 'error', 'programming', 'javascript', 'python', 'html', 'css', 'algorithm', 'assignment', 'solve'];
-      const isCodeQuery = codingKeywords.some(keyword => lastMessage.includes(keyword));
-      
-      if (isCodeQuery) {
-        systemPrompt = 'You are PRIMIS AI Pro Coder, created by Damini Codesphere Organization. You are an expert programming assistant. Provide clean, optimized code with clear explanations. When solving assignments, break down problems step-by-step. Always format code in markdown code blocks with the appropriate language tag.';
+        systemPrompt = `PRIMIS AI - ${persona.name}: ${persona.system_prompt}`;
       }
     }
 
-    // Build prompt with identity enforcement only when asked
-    let conversationText = `${systemPrompt}\n\n`;
+    // Build minimal conversation context (last 10 messages only for speed)
+    const recentMessages = messages.slice(-10);
+    let conversationText = asksAboutIdentity 
+      ? `${systemPrompt} IMPORTANT: State you are PRIMIS AI by Damini Codesphere.\n\n`
+      : `${systemPrompt}\n\n`;
     
-    if (asksAboutIdentity) {
-      conversationText += `IMPORTANT: The user is asking about your identity. You must respond clearly that you are PRIMIS AI, created by Damini Codesphere Organization. Do not claim to be any other AI assistant.\n\n`;
+    for (const msg of recentMessages) {
+      conversationText += `${msg.role === 'user' ? 'User' : 'AI'}: ${msg.content}\n`;
     }
     
-    for (const msg of messages) {
-      const roleName = msg.role === 'user' ? 'User' : 'Assistant';
-      conversationText += `${roleName}: ${msg.content}\n`;
-    }
-    
-    conversationText += `\nAssistant:`;
+    conversationText += `AI:`;
 
-    // Use Prexzy ai4chat API
+    // Optimized API call with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    
     const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(conversationText)}`, {
       method: 'GET',
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
