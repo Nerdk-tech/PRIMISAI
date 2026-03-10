@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Message } from '@/types';
 import { User, Sparkles, Copy, Check, Maximize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
@@ -40,8 +41,9 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-invert max-w-none">
+          <div className="prose prose-invert max-w-none prose-table:border-collapse prose-th:border prose-th:border-border prose-th:bg-muted prose-th:px-4 prose-th:py-2 prose-td:border prose-td:border-border prose-td:px-4 prose-td:py-2 prose-table:w-full">
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 code({ node, inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
@@ -83,7 +85,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         {message.attachments && message.attachments.length > 0 && (
-          <div className="mt-2 space-y-2">
+          <div className="mt-3 space-y-2">
             {message.attachments.map((att, idx) => (
               <div key={idx}>
                 {att.type === 'image' && (
@@ -91,7 +93,9 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                     <img 
                       src={att.url} 
                       alt={att.name} 
-                      className="max-w-[200px] rounded-lg cursor-pointer hover:opacity-80 transition-opacity" 
+                      className={`rounded-lg cursor-pointer hover:opacity-80 transition-all hover:shadow-xl ${
+                        att.name === 'generated' ? 'max-w-full sm:max-w-md border-2 border-primary/30' : 'max-w-[200px]'
+                      }`}
                       onClick={() => setExpandedImage(att.url)}
                     />
                     <button

@@ -60,6 +60,9 @@ export default function DashboardPage() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Image generation state
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   // Check if user is admin
   const isAdmin = user?.email === 'damibotzinc@gmail.com';
@@ -366,8 +369,77 @@ export default function DashboardPage() {
 
     try {
       let response;
+      
+      // Check if user is requesting image generation
+      const imageGenKeywords = ['generate image', 'create image', 'draw image', 'make image', 'generate a picture', 'create a picture', 'draw a picture', 'make a picture', 'show me an image', 'show me a picture'];
+      const isImageGenRequest = !imageUrl && imageGenKeywords.some(keyword => 
+        input.toLowerCase().includes(keyword)
+      );
 
-      if (imageUrl) {
+      if (isImageGenRequest) {
+        // Extract the prompt after the trigger phrase
+        let imagePrompt = input.trim();
+        for (const keyword of imageGenKeywords) {
+          const idx = imagePrompt.toLowerCase().indexOf(keyword);
+          if (idx !== -1) {
+            imagePrompt = imagePrompt.substring(idx + keyword.length).trim();
+            if (imagePrompt.startsWith('of')) imagePrompt = imagePrompt.substring(2).trim();
+            if (imagePrompt.startsWith(':')) imagePrompt = imagePrompt.substring(1).trim();
+            break;
+          }
+        }
+        
+        if (!imagePrompt || imagePrompt.length < 3) {
+          imagePrompt = input.replace(/generate|create|draw|make|show me|image|picture|a/gi, '').trim();
+        }
+        
+        setGeneratingImage(true);
+        
+        const { data: imgData, error: imgError } = await supabase.functions.invoke('ai-image', {
+          body: {
+            prompt: imagePrompt,
+            negative_prompt: 'blurry, low quality, distorted, bad anatomy',
+          },
+        });
+        
+        setGeneratingImage(false);
+        
+        if (imgError) {
+          let errorMessage = imgError.message;
+          if (imgError instanceof FunctionsHttpError) {
+            try {
+              const statusCode = imgError.context?.status ?? 500;
+              const textContent = await imgError.context?.text();
+              errorMessage = `[Code: ${statusCode}] ${textContent || imgError.message || 'Unknown error'}`;
+            } catch {
+              errorMessage = `${imgError.message || 'Failed to read response'}`;
+            }
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const assistantMessage: Message = {
+          id: crypto.randomUUID(),
+          chat_id: activeChat.id,
+          role: 'assistant',
+          content: `Here's the image you requested: "${imagePrompt}"`,
+          attachments: [{ type: 'image', url: imgData.imageUrl, name: 'generated' }],
+          created_at: new Date().toISOString(),
+        };
+
+        await supabase
+          .from('messages')
+          .insert({
+            chat_id: activeChat.id,
+            role: 'assistant',
+            content: assistantMessage.content,
+            attachments: assistantMessage.attachments,
+          });
+
+        setMessages(prev => [...prev, assistantMessage]);
+        setLoading(false);
+        
+      } else if (imageUrl) {
         // Use vision analysis with Prexzy GPT-4
         const { data, error } = await supabase.functions.invoke('ai-vision', {
           body: {
@@ -682,8 +754,24 @@ export default function DashboardPage() {
                   <div className="text-center space-y-4 px-4">
                     <Sparkles className="w-12 h-12 lg:w-16 lg:h-16 mx-auto text-primary animate-pulse-glow" />
                     <p className="text-sm lg:text-base text-muted-foreground max-w-md mx-auto">
-                      Ask me anything. I can help with coding, creative writing, analysis, and more. Upload images for vision analysis!
+                      Ask me anything. I can help with coding, creative writing, analysis, and more.
                     </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto mt-6">
+                      <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Image className="w-4 h-4 text-blue-400" />
+                          <p className="text-sm font-semibold text-blue-300">Image Generation</p>
+                        </div>
+                        <p className="text-xs text-blue-400/70">Say "generate image of..." to create AI art</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Paperclip className="w-4 h-4 text-purple-400" />
+                          <p className="text-sm font-semibold text-purple-300">Vision Analysis</p>
+                        </div>
+                        <p className="text-xs text-purple-400/70">Upload images for AI-powered analysis</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -722,6 +810,25 @@ export default function DashboardPage() {
                         <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                         <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                         <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {generatingImage && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                      <Image className="w-4 h-4 text-purple-400 animate-pulse" />
+                    </div>
+                    <div className="flex-1 bg-gradient-to-r from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-2xl p-4">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-purple-300">Generating image...</p>
+                          <p className="text-xs text-purple-400/70">Creating your visual masterpiece</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-1 bg-purple-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" style={{ width: '100%' }}></div>
                       </div>
                     </div>
                   </div>
@@ -785,8 +892,8 @@ export default function DashboardPage() {
                           sendMessage();
                         }
                       }}
-                      placeholder={uploadedImageUrl ? 'Ask about the image...' : isRecording ? 'Listening...' : 'Type your message... (Shift+Enter for new line)'}
-                      disabled={loading}
+                      placeholder={uploadedImageUrl ? 'Ask about the image...' : isRecording ? 'Listening...' : 'Type your message... Try "generate image of..." (Shift+Enter for new line)'}
+                      disabled={loading || generatingImage}
                       rows={1}
                       className="flex-1 bg-muted border border-border rounded-2xl px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-hidden min-h-[40px] lg:min-h-[48px] max-h-48"
                       style={{
@@ -800,10 +907,14 @@ export default function DashboardPage() {
                     />
                     <Button 
                       onClick={sendMessage}
-                      disabled={loading || (!input.trim() && !uploadedImageUrl)}
+                      disabled={loading || generatingImage || (!input.trim() && !uploadedImageUrl)}
                       className="shrink-0 rounded-full w-10 h-10 lg:w-12 lg:h-12 p-0 bg-primary hover:bg-primary/90"
                     >
-                      <Send className="w-4 h-4 lg:w-5 lg:h-5" />
+                      {generatingImage ? (
+                        <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4 lg:w-5 lg:h-5" />
+                      )}
                     </Button>
                   </div>
                 </div>
