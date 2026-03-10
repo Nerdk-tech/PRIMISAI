@@ -370,27 +370,39 @@ export default function DashboardPage() {
     try {
       let response;
       
-      // Check if user is requesting image generation
-      const imageGenKeywords = ['generate image', 'create image', 'draw image', 'make image', 'generate a picture', 'create a picture', 'draw a picture', 'make a picture', 'show me an image', 'show me a picture'];
-      const isImageGenRequest = !imageUrl && imageGenKeywords.some(keyword => 
-        input.toLowerCase().includes(keyword)
-      );
+      // Check if user is requesting image generation (natural language detection)
+      const actionVerbs = ['generate', 'create', 'make', 'draw', 'design', 'produce', 'show', 'paint', 'illustrate', 'render', 'craft', 'build'];
+      const visualNouns = ['image', 'picture', 'photo', 'art', 'illustration', 'visual', 'graphic', 'artwork', 'drawing', 'painting', 'portrait', 'scene'];
+      
+      const lowerInput = input.toLowerCase();
+      const hasActionVerb = actionVerbs.some(verb => lowerInput.includes(verb));
+      const hasVisualNoun = visualNouns.some(noun => lowerInput.includes(noun));
+      const isImageGenRequest = !imageUrl && hasActionVerb && hasVisualNoun;
 
       if (isImageGenRequest) {
-        // Extract the prompt after the trigger phrase
+        // Smart prompt extraction - remove trigger words and extract the actual subject
         let imagePrompt = input.trim();
-        for (const keyword of imageGenKeywords) {
-          const idx = imagePrompt.toLowerCase().indexOf(keyword);
-          if (idx !== -1) {
-            imagePrompt = imagePrompt.substring(idx + keyword.length).trim();
-            if (imagePrompt.startsWith('of')) imagePrompt = imagePrompt.substring(2).trim();
-            if (imagePrompt.startsWith(':')) imagePrompt = imagePrompt.substring(1).trim();
-            break;
-          }
+        
+        // Remove common trigger patterns
+        imagePrompt = imagePrompt
+          .replace(/^(can you |could you |please |pls )/gi, '')
+          .replace(/(generate|create|make|draw|design|produce|show me|paint|illustrate|render|craft|build)/gi, '')
+          .replace(/(an image|a picture|a photo|an illustration|a visual|a graphic|an artwork|a drawing|a painting|image|picture|photo|art)/gi, '')
+          .replace(/(of|for|about|showing|depicting|with)/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        // If extraction resulted in empty or very short prompt, use original with minimal cleanup
+        if (!imagePrompt || imagePrompt.length < 3) {
+          imagePrompt = input
+            .replace(/^(can you |could you |please |pls )/gi, '')
+            .replace(/^(generate|create|make|draw|design|show me|paint|illustrate) (an? |the )?(image|picture|photo) (of |about |showing )?/gi, '')
+            .trim();
         }
         
+        // Final fallback: use original input if still empty
         if (!imagePrompt || imagePrompt.length < 3) {
-          imagePrompt = input.replace(/generate|create|draw|make|show me|image|picture|a/gi, '').trim();
+          imagePrompt = input.trim();
         }
         
         setGeneratingImage(true);
