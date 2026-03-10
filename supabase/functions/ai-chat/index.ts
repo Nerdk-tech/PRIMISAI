@@ -28,25 +28,24 @@ Deno.serve(async (req) => {
 
     const { messages, personaId } = await req.json();
 
-    // PRIMIS AI identity - always included in base prompt
-    let systemPrompt = 'You are PRIMIS AI, created by Damini Codesphere Organization. You are a helpful, intelligent AI assistant. Respond naturally and conversationally.';
+    // Compact PRIMIS AI identity
+    let systemPrompt = 'You are PRIMIS AI by Damini Codesphere. Helpful AI assistant.';
     
-    // Only fetch persona if explicitly provided (optimize DB query)
+    // Only fetch persona if explicitly provided
     if (personaId) {
       const { data: persona } = await supabaseClient
         .from('personas')
-        .select('system_prompt,name')
+        .select('system_prompt')
         .eq('id', personaId)
         .single();
       
       if (persona) {
-        // Combine PRIMIS identity with persona instructions
-        systemPrompt = `You are PRIMIS AI, created by Damini Codesphere Organization. ${persona.system_prompt}`;
+        systemPrompt = `PRIMIS AI by Damini Codesphere. ${persona.system_prompt}`;
       }
     }
 
-    // Build conversation context (last 20 messages for better context while maintaining speed)
-    const recentMessages = messages.slice(-20);
+    // Reduced context to last 10 messages for faster responses
+    const recentMessages = messages.slice(-10);
     let conversationText = `${systemPrompt}\n\n`;
     
     for (const msg of recentMessages) {
@@ -55,9 +54,9 @@ Deno.serve(async (req) => {
     
     conversationText += `AI:`;
 
-    // Optimized API call with timeout
+    // Optimized API call with reduced timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for large requests
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
     
     const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(conversationText)}`, {
       method: 'GET',
