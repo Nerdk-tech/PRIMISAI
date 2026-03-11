@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const falApiKey = Deno.env.get('FAL_API_KEY') || 'mhk_live_ETMycazrHoHj2FQJns69Wu1FG5WlhPnCUl1oWyVQmIZZmqnXgkNFGrvfU9X0lEvwpV3wsEUqGYauoxLK';
+const magicHourApiKey = Deno.env.get('FAL_API_KEY') || 'mhk_live_ETMycazrHoHj2FQJns69Wu1FG5WlhPnCUl1oWyVQmIZZmqnXgkNFGrvfU9X0lEvwpV3wsEUqGYauoxLK';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,63 +26,73 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { action, prompt, predictionId, model = 'fal-ai/ltx-video', seconds = 5 } = await req.json();
+    const { action, prompt, predictionId, seconds = 5 } = await req.json();
 
     if (action === 'create') {
-      console.log('Creating video with fal.ai LTX-Video model...');
+      console.log('Creating video with Magic Hour API...');
       
-      const response = await fetch('https://fal.run/fal-ai/ltx-video', {
+      // Determine valid duration based on available options for ltx-2 model
+      const validDurations = [3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30];
+      const duration = validDurations.find(d => d >= seconds) || 5;
+      
+      const response = await fetch('https://api.magichour.ai/v1/text-to-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Key ${falApiKey}`,
+          'Authorization': `Bearer ${magicHourApiKey}`,
         },
         body: JSON.stringify({
-          prompt: prompt,
-          num_frames: Math.min(seconds * 24, 120), // 24fps, max 120 frames (~5s)
+          style: {
+            prompt: prompt,
+            negative_prompt: 'blurry, low quality, distorted, deformed, bad anatomy'
+          },
+          end_seconds: duration,
           aspect_ratio: '16:9',
-          negative_prompt: 'blurry, low quality, distorted, deformed',
+          resolution: '720p',
+          model: 'ltx-2', // Fast iteration with audio support
+          audio: true,
+          name: `PRIMIS AI Video - ${new Date().toISOString()}`,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('fal.ai Video Create Error:', errorText);
-        throw new Error(`fal.ai API Error: ${errorText}`);
+        console.error('Magic Hour Video Create Error:', errorText);
+        throw new Error(`Magic Hour API Error: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('fal.ai video job created:', data);
+      console.log('Magic Hour video job created:', data);
       
       return new Response(
-        JSON.stringify({ id: data.request_id || data.id, status: 'processing' }),
+        JSON.stringify({ id: data.id, status: 'processing' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (action === 'check') {
-      const response = await fetch(`https://fal.run/fal-ai/ltx-video/requests/${predictionId}`, {
+      const response = await fetch(`https://api.magichour.ai/v1/video-projects/${predictionId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Key ${falApiKey}`,
+          'Authorization': `Bearer ${magicHourApiKey}`,
         },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('fal.ai Video Check Error:', errorText);
-        throw new Error(`fal.ai API Error: ${errorText}`);
+        console.error('Magic Hour Video Check Error:', errorText);
+        throw new Error(`Magic Hour API Error: ${errorText}`);
       }
 
       const status = await response.json();
-      console.log('fal.ai video status:', status);
+      console.log('Magic Hour video status:', status);
 
       if (status.status === 'failed' || status.status === 'error') {
-        throw new Error(status.error?.message || status.error || 'Video generation failed');
+        throw new Error(status.error?.message || 'Video generation failed');
       }
 
-      if (status.status === 'completed' && status.video?.url) {
-        const videoUrl = status.video.url;
+      if (status.status === 'complete' && status.downloads?.[0]?.url) {
+        const videoUrl = status.downloads[0].url;
         const videoResponse = await fetch(videoUrl);
         const arrayBuffer = await videoResponse.arrayBuffer();
         const videoBlob = new Blob([arrayBuffer], { type: 'video/mp4' });
@@ -119,11 +129,14 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Map Magic Hour status to expected format
+      const normalizedStatus = status.status === 'queued' || status.status === 'rendering' ? 'processing' : status.status;
+      
       return new Response(
         JSON.stringify({ 
           id: predictionId,
-          status: status.status === 'in_queue' || status.status === 'in_progress' ? 'processing' : status.status,
-          progress: status.progress || (status.status === 'in_progress' ? 50 : 0),
+          status: normalizedStatus,
+          progress: status.progress_percent || (status.status === 'rendering' ? 50 : 0),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
