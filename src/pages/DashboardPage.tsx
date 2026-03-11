@@ -370,14 +370,14 @@ export default function DashboardPage() {
     try {
       let response;
       
-      // Check if user is requesting image generation (natural language detection)
-      const actionVerbs = ['generate', 'create', 'make', 'draw', 'design', 'produce', 'show', 'paint', 'illustrate', 'render', 'craft', 'build'];
-      const visualNouns = ['image', 'picture', 'photo', 'art', 'illustration', 'visual', 'graphic', 'artwork', 'drawing', 'painting', 'portrait', 'scene'];
-      
-      const lowerInput = input.toLowerCase();
-      const hasActionVerb = actionVerbs.some(verb => lowerInput.includes(verb));
-      const hasVisualNoun = visualNouns.some(noun => lowerInput.includes(noun));
-      const isImageGenRequest = !imageUrl && hasActionVerb && hasVisualNoun;
+      // More precise image generation detection - only trigger on explicit requests
+      const lowerInput = input.toLowerCase().trim();
+      const explicitImagePatterns = [
+        /^(generate|create|make|draw|design|produce|paint|illustrate|render)\s+(an?\s+)?(image|picture|photo|art|illustration|graphic|artwork|drawing|painting)/i,
+        /^(can you|could you|please|pls)\s+(generate|create|make|draw|design|produce|paint|illustrate|render)\s+(an?\s+)?(image|picture|photo|art)/i,
+        /^(show me|give me|i want|i need)\s+(an?\s+)?(image|picture|photo|art)/i,
+      ];
+      const isImageGenRequest = !imageUrl && explicitImagePatterns.some(pattern => pattern.test(lowerInput));
 
       if (isImageGenRequest) {
         // Smart prompt extraction - remove trigger words and extract the actual subject

@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const shortApiKey = Deno.env.get('SHORTAPI_AI_KEY');
+const falApiKey = Deno.env.get('FAL_API_KEY') || 'mhk_live_ETMycazrHoHj2FQJns69Wu1FG5WlhPnCUl1oWyVQmIZZmqnXgkNFGrvfU9X0lEvwpV3wsEUqGYauoxLK';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,66 +26,63 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { action, prompt, predictionId, model = 'kwaivgi/kling-2.6/text-to-video', seconds = 5 } = await req.json();
+    const { action, prompt, predictionId, model = 'fal-ai/ltx-video', seconds = 5 } = await req.json();
 
     if (action === 'create') {
-      console.log('Creating video with ShortAPI Kling 2.6 model...');
+      console.log('Creating video with fal.ai LTX-Video model...');
       
-      const response = await fetch('https://api.shortapi.ai/v1/run', {
+      const response = await fetch('https://fal.run/fal-ai/ltx-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${shortApiKey}`,
+          'Authorization': `Key ${falApiKey}`,
         },
         body: JSON.stringify({
-          model: model,
-          input: {
-            prompt: prompt,
-            duration: seconds,
-            aspect_ratio: '16:9',
-            negative_prompt: 'blurry, low quality, distorted, deformed',
-          },
+          prompt: prompt,
+          num_frames: Math.min(seconds * 24, 120), // 24fps, max 120 frames (~5s)
+          aspect_ratio: '16:9',
+          negative_prompt: 'blurry, low quality, distorted, deformed',
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('ShortAPI Video Create Error:', errorText);
-        throw new Error(`ShortAPI API Error: ${errorText}`);
+        console.error('fal.ai Video Create Error:', errorText);
+        throw new Error(`fal.ai API Error: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('ShortAPI video job created:', data);
+      console.log('fal.ai video job created:', data);
       
       return new Response(
-        JSON.stringify({ id: data.id, status: 'processing' }),
+        JSON.stringify({ id: data.request_id || data.id, status: 'processing' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (action === 'check') {
-      const response = await fetch(`https://api.shortapi.ai/v1/status/${predictionId}`, {
+      const response = await fetch(`https://fal.run/fal-ai/ltx-video/requests/${predictionId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${shortApiKey}`,
+          'Authorization': `Key ${falApiKey}`,
         },
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('ShortAPI Video Check Error:', errorText);
-        throw new Error(`ShortAPI API Error: ${errorText}`);
+        console.error('fal.ai Video Check Error:', errorText);
+        throw new Error(`fal.ai API Error: ${errorText}`);
       }
 
       const status = await response.json();
-      console.log('ShortAPI video status:', status);
+      console.log('fal.ai video status:', status);
 
-      if (status.status === 'failed') {
-        throw new Error(status.error || 'Video generation failed');
+      if (status.status === 'failed' || status.status === 'error') {
+        throw new Error(status.error?.message || status.error || 'Video generation failed');
       }
 
-      if (status.status === 'succeeded' && status.output?.video) {
-        const videoUrl = status.output.video;
+      if (status.status === 'completed' && status.video?.url) {
+        const videoUrl = status.video.url;
         const videoResponse = await fetch(videoUrl);
         const arrayBuffer = await videoResponse.arrayBuffer();
         const videoBlob = new Blob([arrayBuffer], { type: 'video/mp4' });
@@ -125,8 +122,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           id: predictionId,
-          status: status.status === 'queued' || status.status === 'processing' ? 'processing' : status.status,
-          progress: status.progress || (status.status === 'processing' ? 50 : 0),
+          status: status.status === 'in_queue' || status.status === 'in_progress' ? 'processing' : status.status,
+          progress: status.progress || (status.status === 'in_progress' ? 50 : 0),
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
