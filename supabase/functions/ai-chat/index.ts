@@ -73,9 +73,9 @@ Important:
     
     conversationText += `AI:`;
 
-    // Optimized API call with reduced timeout
+    // API call with extended timeout for complex requests (tables, long responses)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 40000); // 40s timeout
     
     const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(conversationText)}`, {
       method: 'GET',

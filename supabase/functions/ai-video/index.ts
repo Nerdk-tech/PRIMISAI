@@ -1,7 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const magicHourApiKey = Deno.env.get('FAL_API_KEY') || 'mhk_live_ETMycazrHoHj2FQJns69Wu1FG5WlhPnCUl1oWyVQmIZZmqnXgkNFGrvfU9X0lEvwpV3wsEUqGYauoxLK';
+const magicHourApiKey = Deno.env.get('MAGIC_HOUR_API_KEY');
+
+if (!magicHourApiKey) {
+  throw new Error('MAGIC_HOUR_API_KEY is not configured');
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
