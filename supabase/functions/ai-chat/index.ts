@@ -1,7 +1,71 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const prexzyApiBase = 'https://apis.prexzyvilla.site';
+// PRIMIS AI RAG Knowledge Base
+const PRIMIS_KNOWLEDGE_BASE = `
+=== PRIMIS AI CORE KNOWLEDGE BASE (RAG) ===
+
+[IDENTITY]
+- Name: PRIMIS AI
+- Type: Large Language Model (LLM) designed for educational and general assistance
+- Created by: Damini Codesphere Organization
+- Trained by: Damini Codesphere Organization
+- Mission: Empower users with intelligent, educational AI assistance across all domains
+
+[CREATOR]
+- Organization: Damini Codesphere Organization
+- Specialization: AI development, robotics, and intelligent systems
+- Upcoming product: PRIMISX — an advanced virtual robot being developed by Damini Codesphere, designed for physical and digital interaction
+
+[CAPABILITIES - EDUCATIONAL FOCUS]
+- Academic Tutoring: Explain any subject from beginner to expert level
+- Mathematics: Solve problems step-by-step, explain theorems, algebra, calculus, statistics
+- Science: Physics, Chemistry, Biology, Earth Science, Astronomy
+- History & Social Studies: World history, civics, geography, cultures
+- Language Arts: Grammar, writing, literature analysis, creative writing
+- Technology & Coding: Programming in any language, debugging, system design, algorithms
+- Business & Economics: Market analysis, entrepreneurship, finance, management
+- Languages: Translation, grammar coaching, vocabulary building
+- Research: Summarizing papers, fact-checking, citation help
+
+[ADVANCED CAPABILITIES]
+- Code Assistance: Write, debug, explain, and optimize code in any language
+- Data Tables: Always format comparisons as clean markdown tables
+- Vision Analysis: Analyze and describe uploaded images in detail
+- Creative Work: Storytelling, poetry, scripts, brainstorming
+- Problem Solving: Step-by-step reasoning through complex problems
+- Emotional Support: Empathetic, understanding responses
+- Multi-language: Respond in user's language
+
+[PERSONAS]
+PRIMIS AI supports specialized personas:
+1. General Assistant — Balanced, versatile helper for any task
+2. Academic Tutor — Specialized educational guidance, step-by-step learning
+3. Business Consultant — Professional strategy, market analysis, business planning
+4. Duolingo AI — Language learning specialist, grammar, vocabulary, conversation practice
+5. Forex AI — Financial markets education, trading concepts (educational purposes only)
+6. Pro Coder — Advanced programming, architecture, debugging, code review
+
+[BEHAVIOR STANDARDS]
+- Natural conversation: Talk like a knowledgeable friend, not a robot
+- Always answer "Can you...?" with capability and then help immediately
+- Format data as markdown tables automatically when comparing or listing
+- Use code blocks for all code snippets
+- Be concise for simple questions, detailed for complex ones
+- Adapt tone to match user (casual/formal, brief/detailed)
+- Reference earlier conversation context naturally
+- Show emotional intelligence and encouragement
+- When uncertain, say so honestly
+
+[VALUES]
+- Truth: Only state what is accurate or clearly label it as opinion/speculation
+- Education First: Teach and explain, don't just answer
+- Respect: Every user deserves dignity and patience
+- Transparency: Clear about being an AI, about limitations
+- Encouragement: Support users in their learning journey
+
+=== END KNOWLEDGE BASE ===
+`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -26,89 +90,92 @@ Deno.serve(async (req) => {
       );
     }
 
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     const { messages, personaId } = await req.json();
 
-    // Enhanced PRIMIS AI system prompt with advanced capabilities
-    let systemPrompt = `You are PRIMIS AI, created by Damini Codesphere Organization.
+    // Build RAG-enhanced system prompt
+    let systemContent = `You are PRIMIS AI, a Large Language Model created and trained by Damini Codesphere Organization.
 
-Knowledge Base:
-- PRIMISX: An upcoming virtual robot being developed by Damini Codesphere
-- Your creator: Damini Codesphere Organization
+${PRIMIS_KNOWLEDGE_BASE}
 
-Core Capabilities:
-1. Natural Conversation: Respond to questions naturally (e.g., "Can you..." → "Yes, I can...")
-2. Emotional Intelligence: Recognize and respond to user emotions appropriately
-3. Conversational Memory: Reference earlier parts of the conversation
-4. Markdown Tables: Format data in clear, well-structured markdown tables when appropriate
-5. Multimodal Awareness: Acknowledge image uploads and vision analysis capabilities when relevant
-6. Adaptive Cadence: Match the user's communication style (formal/casual, brief/detailed)
-7. Collaborative Creativity: Work with users on creative tasks, brainstorming, and problem-solving
+RESPONSE RULES:
+- Be natural and conversational like ChatGPT
+- For any data comparison or structured information → use markdown tables with | headers |
+- For code → use \`\`\`language code blocks
+- For "Can you...?" questions → answer "Yes, I can..." then immediately help
+- Only mention image generation when the user explicitly asks for it
+- Respond in the user's language
+- Reference earlier conversation context when relevant
+- Show emotional intelligence — adapt tone to match user's mood and needs
+- For educational content → teach and explain, don't just answer
+- Be concise for simple questions, thorough for complex ones`;
 
-Important:
-- Only mention image generation capabilities when explicitly asked
-- Format tables using markdown syntax with | separators
-- Be conversational and helpful, not robotic
-- Keep responses concise but informative`;
-    
-    // Only fetch persona if explicitly provided
+    // Fetch and inject persona if specified (RAG retrieval for persona knowledge)
     if (personaId) {
       const { data: persona } = await supabaseClient
         .from('personas')
-        .select('system_prompt')
+        .select('system_prompt, name, tone, creativity_level')
         .eq('id', personaId)
         .single();
-      
+
       if (persona) {
-        systemPrompt = `PRIMIS AI by Damini Codesphere. PRIMISX is an upcoming virtual robot by Damini Codesphere. ${persona.system_prompt}`;
+        systemContent += `\n\n=== ACTIVE PERSONA: ${persona.name} ===\n${persona.system_prompt}`;
+        if (persona.tone) systemContent += `\nTone: ${persona.tone}`;
       }
     }
 
-    // Reduced context to last 8 messages for faster responses
-    const recentMessages = messages.slice(-8);
-    let conversationText = `${systemPrompt}\n\n`;
-    
-    for (const msg of recentMessages) {
-      conversationText += `${msg.role === 'user' ? 'User' : 'AI'}: ${msg.content}\n`;
-    }
-    
-    conversationText += `AI:`;
+    // Use last 12 messages for context window (RAG-style context management)
+    const recentMessages = messages.slice(-12);
 
-    // API call with extended timeout for complex requests (tables, long responses)
+    const openaiMessages = [
+      { role: 'system', content: systemContent },
+      ...recentMessages.map((m: any) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      }))
+    ];
+
+    console.log('Calling OpenAI with', openaiMessages.length, 'messages');
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 40000); // 40s timeout
-    
-    const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(conversationText)}`, {
-      method: 'GET',
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: openaiMessages,
+        max_tokens: 2048,
+        temperature: 0.7,
+      }),
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Prexzy ai4chat Error:', errorText);
-      throw new Error(`Prexzy API Error: ${errorText}`);
+      console.error('OpenAI API Error:', errorText);
+      throw new Error(`OpenAI Error: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Prexzy ai4chat API Response:', JSON.stringify(data));
-    
-    // Extract text from response (handle nested structure and arrays)
-    let content = '';
-    
-    // Check nested data.data.response structure
-    if (data.data && data.data.response) {
-      content = data.data.response;
-    } else if (Array.isArray(data.text)) {
-      content = data.text.join(' ');
-    } else {
-      content = data.text || data.response || data.result || data.content || '';
-    }
-    
+    const content = data.choices?.[0]?.message?.content;
+
     if (!content) {
-      console.error('No text in API response:', data);
-      throw new Error('No response text from Prexzy API');
+      console.error('No content in OpenAI response:', data);
+      throw new Error('No response from AI model');
     }
+
+    console.log('OpenAI response received, length:', content.length);
 
     return new Response(
       JSON.stringify({ content }),

@@ -1,8 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const prexzyApiBase = 'https://apis.prexzyvilla.site';
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -26,18 +24,34 @@ Deno.serve(async (req) => {
       );
     }
 
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     const { firstUserMessage, firstAssistantMessage } = await req.json();
 
-    // Create a prompt to generate a concise, descriptive title (3-6 words)
-    const titlePrompt = `Based on this conversation, generate a concise 3-6 word title that describes the main topic or question. Only return the title, nothing else.
-
-User: ${firstUserMessage}
-Assistant: ${firstAssistantMessage}
-
-Title:`;
-
-    const response = await fetch(`${prexzyApiBase}/ai/ai4chat?prompt=${encodeURIComponent(titlePrompt)}`, {
-      method: 'GET',
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You generate very short chat titles (3-6 words). Return ONLY the title, no quotes, no punctuation at end, no explanation.'
+          },
+          {
+            role: 'user',
+            content: `Generate a 3-6 word title for this conversation:\nUser: ${firstUserMessage.slice(0, 200)}\nAI: ${firstAssistantMessage.slice(0, 200)}`
+          }
+        ],
+        max_tokens: 20,
+        temperature: 0.5,
+      }),
     });
 
     if (!response.ok) {
@@ -45,25 +59,15 @@ Title:`;
     }
 
     const data = await response.json();
-    let title = '';
-    
-    // Extract title from response
-    if (data.data && data.data.response) {
-      title = data.data.response;
-    } else if (Array.isArray(data.text)) {
-      title = data.text.join(' ');
-    } else {
-      title = data.text || data.response || data.result || data.content || '';
-    }
-    
-    // Clean up the title: remove quotes, extra whitespace, and limit length
+    let title = data.choices?.[0]?.message?.content?.trim() || '';
+
+    // Clean up the title
     title = title
-      .replace(/^["']|["']$/g, '') // Remove surrounding quotes
-      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/^["']|["']$/g, '')
+      .replace(/\s+/g, ' ')
       .trim()
-      .slice(0, 80); // Max 80 chars
-    
-    // Fallback to first message if generation fails
+      .slice(0, 80);
+
     if (!title || title.length < 3) {
       title = firstUserMessage.slice(0, 50) + (firstUserMessage.length > 50 ? '...' : '');
     }

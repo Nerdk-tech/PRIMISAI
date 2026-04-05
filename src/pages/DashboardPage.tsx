@@ -9,7 +9,6 @@ import {
   LogOut, 
   MessageSquare, 
   Image, 
-  Video, 
   Bookmark,
   Plus,
   Sparkles,
@@ -30,14 +29,14 @@ import { toast } from 'sonner';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import SettingsPanel from '@/components/features/SettingsPanel';
 import ImageGenPanel from '@/components/features/ImageGenPanel';
-import VideoGenPanel from '@/components/features/VideoGenPanel';
+
 import SavedContentPanel from '@/components/features/SavedContentPanel';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'image' | 'video' | 'saved'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'image' | 'saved'>('chat');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Chat state
@@ -579,7 +578,7 @@ export default function DashboardPage() {
       {/* Hamburger Menu - Mobile */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 bg-primary/90 backdrop-blur rounded-lg flex items-center justify-center shadow-lg"
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -627,14 +626,7 @@ export default function DashboardPage() {
             <Image className="w-4 h-4 mr-2" />
             Image Gen
           </Button>
-          <Button
-            onClick={() => { setActiveTab('video'); setSidebarOpen(false); }}
-            variant={activeTab === 'video' ? 'default' : 'ghost'}
-            className="w-full justify-start"
-          >
-            <Video className="w-4 h-4 mr-2" />
-            Video Gen
-          </Button>
+
           <Button
             onClick={() => { setActiveTab('saved'); setSidebarOpen(false); }}
             variant={activeTab === 'saved' ? 'default' : 'ghost'}
@@ -715,7 +707,6 @@ export default function DashboardPage() {
               <h2 className="text-base lg:text-lg font-semibold">
                 {activeTab === 'chat' && 'AI Chat'}
                 {activeTab === 'image' && 'Image Generation'}
-                {activeTab === 'video' && 'Video Generation'}
                 {activeTab === 'saved' && 'Saved Content'}
               </h2>
               {persona && activeTab === 'chat' && (
@@ -875,26 +866,24 @@ export default function DashboardPage() {
                     >
                       {isRecording ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="shrink-0"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={loading || uploadingImage}
+                    <label
+                      className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-md cursor-pointer hover:bg-accent transition-colors ${(loading || uploadingImage) ? 'opacity-50 pointer-events-none' : ''}`}
+                      title="Upload image for analysis"
                     >
                       {uploadingImage ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
                         <Paperclip className="w-5 h-5" />
                       )}
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="sr-only"
+                        disabled={loading || uploadingImage}
+                      />
+                    </label>
                     <textarea
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
@@ -907,7 +896,7 @@ export default function DashboardPage() {
                       placeholder={uploadedImageUrl ? 'Ask about the image...' : isRecording ? 'Listening...' : 'Type your message... Try "generate image of..." (Shift+Enter for new line)'}
                       disabled={loading || generatingImage}
                       rows={1}
-                      className="flex-1 bg-muted border border-border rounded-2xl px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-hidden min-h-[40px] lg:min-h-[48px] max-h-48"
+                      className="flex-1 bg-muted/80 border border-border rounded-2xl px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base focus:outline-none focus:ring-2 focus:ring-primary resize-none overflow-hidden min-h-[40px] lg:min-h-[48px] max-h-48"
                       style={{
                         height: 'auto',
                       }}
@@ -936,7 +925,7 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'image' && <ImageGenPanel />}
-        {activeTab === 'video' && <VideoGenPanel />}
+
         {activeTab === 'saved' && <SavedContentPanel />}
       </div>
 
