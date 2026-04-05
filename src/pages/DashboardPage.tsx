@@ -20,7 +20,8 @@ import {
   Volume2,
   Paperclip,
   Loader2,
-  Shield
+  Shield,
+  BarChart3
 } from 'lucide-react';
 import type { Chat, Message, Persona } from '@/types';
 import ChatMessage from '@/components/features/ChatMessage';
@@ -29,8 +30,8 @@ import { toast } from 'sonner';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import SettingsPanel from '@/components/features/SettingsPanel';
 import ImageGenPanel from '@/components/features/ImageGenPanel';
-
 import SavedContentPanel from '@/components/features/SavedContentPanel';
+import AnalyticsPanel from '@/components/features/AnalyticsPanel';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -62,6 +63,7 @@ export default function DashboardPage() {
   
   // Image generation state
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   // Check if user is admin
   const isAdmin = user?.email === 'damibotzinc@gmail.com';
@@ -677,6 +679,14 @@ export default function DashboardPage() {
             </Button>
           )}
           <Button
+            onClick={() => setShowAnalytics(true)}
+            variant="ghost"
+            className="w-full justify-start text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Analytics
+          </Button>
+          <Button
             onClick={() => setShowSettings(true)}
             variant="ghost"
             className="w-full justify-start"
@@ -928,6 +938,11 @@ export default function DashboardPage() {
 
         {activeTab === 'saved' && <SavedContentPanel />}
       </div>
+
+      {/* Analytics Panel */}
+      {showAnalytics && (
+        <AnalyticsPanel onClose={() => setShowAnalytics(false)} />
+      )}
 
       {/* Settings Panel */}
       {showSettings && (
