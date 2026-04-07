@@ -40,6 +40,9 @@ import SettingsPanel from '@/components/features/SettingsPanel';
 import ImageGenPanel from '@/components/features/ImageGenPanel';
 import SavedContentPanel from '@/components/features/SavedContentPanel';
 import AnalyticsPanel from '@/components/features/AnalyticsPanel';
+import QuizPanel from '@/components/features/QuizPanel';
+import WaecPanel from '@/components/features/WaecPanel';
+import StudyTimer from '@/components/features/StudyTimer';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -72,6 +75,28 @@ export default function DashboardPage() {
   // Image generation state
   const [generatingImage, setGeneratingImage] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [showWaec, setShowWaec] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
+
+  // Save note handler
+  const handleSaveNote = async (content: string) => {
+    const title = content.slice(0, 60) + (content.length > 60 ? '...' : '');
+    const { error } = await supabase
+      .from('saved_content')
+      .insert({
+        user_id: user!.id,
+        type: 'chat',
+        title: `Note: ${title}`,
+        description: content.slice(0, 300),
+        metadata: { savedAt: new Date().toISOString(), fullContent: content },
+      });
+    if (error) {
+      toast.error('Failed to save note');
+    } else {
+      toast.success('Note saved to library!');
+    }
+  };
 
   // Check if user is admin
   const isAdmin = user?.email === 'damibotzinc@gmail.com';
@@ -695,6 +720,30 @@ export default function DashboardPage() {
             Analytics
           </Button>
           <Button
+            onClick={() => { setShowQuiz(true); setSidebarOpen(false); }}
+            variant="ghost"
+            className="w-full justify-start text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+          >
+            <BrainCircuit className="w-4 h-4 mr-2" />
+            Quiz Mode
+          </Button>
+          <Button
+            onClick={() => { setShowWaec(true); setSidebarOpen(false); }}
+            variant="ghost"
+            className="w-full justify-start text-green-400 hover:text-green-300 hover:bg-green-500/10"
+          >
+            <GraduationCap className="w-4 h-4 mr-2" />
+            WAEC Questions
+          </Button>
+          <Button
+            onClick={() => { setShowTimer(!showTimer); setSidebarOpen(false); }}
+            variant="ghost"
+            className="w-full justify-start text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+          >
+            <Lightbulb className="w-4 h-4 mr-2" />
+            Study Timer
+          </Button>
+          <Button
             onClick={() => setShowSettings(true)}
             variant="ghost"
             className="w-full justify-start"
@@ -831,7 +880,7 @@ export default function DashboardPage() {
               <div className="space-y-4 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto px-2 sm:px-0">
                 {messages.map((message) => (
                   <div key={message.id} className="group">
-                    <ChatMessage message={message} />
+                    <ChatMessage message={message} onSaveNote={message.role === 'assistant' ? handleSaveNote : undefined} />
                     {message.role === 'assistant' && (
                       <button
                         onClick={() => speakMessage(message.id, message.content)}
@@ -981,6 +1030,23 @@ export default function DashboardPage() {
       {/* Analytics Panel */}
       {showAnalytics && (
         <AnalyticsPanel onClose={() => setShowAnalytics(false)} />
+      )}
+
+      {/* Quiz Panel */}
+      {showQuiz && (
+        <QuizPanel onClose={() => setShowQuiz(false)} />
+      )}
+
+      {/* WAEC Panel */}
+      {showWaec && (
+        <WaecPanel onClose={() => setShowWaec(false)} />
+      )}
+
+      {/* Study Timer */}
+      {showTimer && (
+        <div className="fixed bottom-24 left-4 lg:bottom-6 lg:left-72 z-50">
+          <StudyTimer onClose={() => setShowTimer(false)} />
+        </div>
       )}
 
       {/* Settings Panel */}
