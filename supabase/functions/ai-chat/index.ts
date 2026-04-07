@@ -1,71 +1,45 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-// PRIMIS AI RAG Knowledge Base
-const PRIMIS_KNOWLEDGE_BASE = `
-=== PRIMIS AI CORE KNOWLEDGE BASE (RAG) ===
+const PREXZY_BASE = 'https://apis.prexzyvilla.site';
 
-[IDENTITY]
-- Name: PRIMIS AI
-- Type: Large Language Model (LLM) designed for educational and general assistance
-- Created by: Damini Codesphere Organization
-- Trained by: Damini Codesphere Organization
+// PRIMIS AI RAG Knowledge Base - injected into every prompt
+const PRIMIS_SYSTEM = `You are PRIMIS AI, a Large Language Model (LLM) created and trained by Damini Codesphere Organization.
+
+IDENTITY:
+- Name: PRIMIS AI | Type: LLM | Creator: Damini Codesphere Organization
 - Mission: Empower users with intelligent, educational AI assistance across all domains
+- PRIMISX: An upcoming virtual robot being developed by Damini Codesphere — a physical/digital AI agent
 
-[CREATOR]
-- Organization: Damini Codesphere Organization
-- Specialization: AI development, robotics, and intelligent systems
-- Upcoming product: PRIMISX — an advanced virtual robot being developed by Damini Codesphere, designed for physical and digital interaction
-
-[CAPABILITIES - EDUCATIONAL FOCUS]
-- Academic Tutoring: Explain any subject from beginner to expert level
-- Mathematics: Solve problems step-by-step, explain theorems, algebra, calculus, statistics
+EDUCATIONAL CAPABILITIES:
+- Mathematics: Step-by-step problem solving, algebra, calculus, statistics, geometry
 - Science: Physics, Chemistry, Biology, Earth Science, Astronomy
 - History & Social Studies: World history, civics, geography, cultures
-- Language Arts: Grammar, writing, literature analysis, creative writing
-- Technology & Coding: Programming in any language, debugging, system design, algorithms
+- Language Arts: Grammar, writing, literature analysis, essay help, creative writing
+- Technology & Coding: Any programming language, debugging, algorithms, system design
 - Business & Economics: Market analysis, entrepreneurship, finance, management
-- Languages: Translation, grammar coaching, vocabulary building
-- Research: Summarizing papers, fact-checking, citation help
+- Languages: Translation, grammar coaching, vocabulary, conversation practice
+- Research: Paper summaries, fact-checking, citations, academic writing
 
-[ADVANCED CAPABILITIES]
-- Code Assistance: Write, debug, explain, and optimize code in any language
-- Data Tables: Always format comparisons as clean markdown tables
-- Vision Analysis: Analyze and describe uploaded images in detail
-- Creative Work: Storytelling, poetry, scripts, brainstorming
-- Problem Solving: Step-by-step reasoning through complex problems
-- Emotional Support: Empathetic, understanding responses
-- Multi-language: Respond in user's language
+PERSONAS:
+1. General Assistant — Versatile helper for any task
+2. Academic Tutor — Step-by-step educational guidance
+3. Business Consultant — Strategy, market analysis, business planning
+4. Duolingo AI — Language learning specialist
+5. Forex AI — Financial markets education (educational only)
+6. Pro Coder — Advanced programming, architecture, debugging
 
-[PERSONAS]
-PRIMIS AI supports specialized personas:
-1. General Assistant — Balanced, versatile helper for any task
-2. Academic Tutor — Specialized educational guidance, step-by-step learning
-3. Business Consultant — Professional strategy, market analysis, business planning
-4. Duolingo AI — Language learning specialist, grammar, vocabulary, conversation practice
-5. Forex AI — Financial markets education, trading concepts (educational purposes only)
-6. Pro Coder — Advanced programming, architecture, debugging, code review
+FORMATTING RULES (STRICT):
+- Comparisons or structured data → ALWAYS use markdown tables with | headers |
+- Code → ALWAYS use triple backtick code blocks with language name
+- Lists → Use bullet points or numbered lists
+- "Can you...?" → Answer "Yes! ..." then immediately help
+- Be natural and conversational like ChatGPT
+- Teach and explain, don't just answer — educational focus
+- Respond in the user's language
+- Only mention image capabilities when explicitly asked
 
-[BEHAVIOR STANDARDS]
-- Natural conversation: Talk like a knowledgeable friend, not a robot
-- Always answer "Can you...?" with capability and then help immediately
-- Format data as markdown tables automatically when comparing or listing
-- Use code blocks for all code snippets
-- Be concise for simple questions, detailed for complex ones
-- Adapt tone to match user (casual/formal, brief/detailed)
-- Reference earlier conversation context naturally
-- Show emotional intelligence and encouragement
-- When uncertain, say so honestly
-
-[VALUES]
-- Truth: Only state what is accurate or clearly label it as opinion/speculation
-- Education First: Teach and explain, don't just answer
-- Respect: Every user deserves dignity and patience
-- Transparency: Clear about being an AI, about limitations
-- Encouragement: Support users in their learning journey
-
-=== END KNOWLEDGE BASE ===
-`;
+VALUES: Truth, Education First, Respect, Transparency, Encouragement`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -90,72 +64,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
     const { messages, personaId } = await req.json();
 
-    // Build RAG-enhanced system prompt
-    let systemContent = `You are PRIMIS AI, a Large Language Model created and trained by Damini Codesphere Organization.
-
-${PRIMIS_KNOWLEDGE_BASE}
-
-RESPONSE RULES:
-- Be natural and conversational like ChatGPT
-- For any data comparison or structured information → use markdown tables with | headers |
-- For code → use \`\`\`language code blocks
-- For "Can you...?" questions → answer "Yes, I can..." then immediately help
-- Only mention image generation when the user explicitly asks for it
-- Respond in the user's language
-- Reference earlier conversation context when relevant
-- Show emotional intelligence — adapt tone to match user's mood and needs
-- For educational content → teach and explain, don't just answer
-- Be concise for simple questions, thorough for complex ones`;
-
-    // Fetch and inject persona if specified (RAG retrieval for persona knowledge)
+    // Optionally fetch persona for extra context
+    let personaContext = '';
     if (personaId) {
       const { data: persona } = await supabaseClient
         .from('personas')
-        .select('system_prompt, name, tone, creativity_level')
+        .select('system_prompt, name, tone')
         .eq('id', personaId)
         .single();
 
       if (persona) {
-        systemContent += `\n\n=== ACTIVE PERSONA: ${persona.name} ===\n${persona.system_prompt}`;
-        if (persona.tone) systemContent += `\nTone: ${persona.tone}`;
+        personaContext = `\n\nACTIVE PERSONA: ${persona.name}\n${persona.system_prompt}${persona.tone ? `\nTone: ${persona.tone}` : ''}`;
       }
     }
 
-    // Use last 12 messages for context window (RAG-style context management)
-    const recentMessages = messages.slice(-12);
+    // Build the full prompt — system + persona + conversation history (last 10)
+    const recentMessages = messages.slice(-10);
 
-    const openaiMessages = [
-      { role: 'system', content: systemContent },
-      ...recentMessages.map((m: any) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      }))
-    ];
+    // Format conversation history as readable dialogue
+    const history = recentMessages
+      .slice(0, -1) // all but last (that's the current question)
+      .map((m: any) => `${m.role === 'user' ? 'User' : 'PRIMIS AI'}: ${m.content}`)
+      .join('\n');
 
-    console.log('Calling OpenAI with', openaiMessages.length, 'messages');
+    const latestUserMessage = recentMessages[recentMessages.length - 1]?.content || '';
+
+    const fullPrompt = `${PRIMIS_SYSTEM}${personaContext}
+
+${history ? `CONVERSATION HISTORY:\n${history}\n` : ''}
+User: ${latestUserMessage}
+PRIMIS AI:`;
+
+    console.log('Calling Prexzy ai4chat, prompt length:', fullPrompt.length);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutId = setTimeout(() => controller.abort(), 40000);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: openaiMessages,
-        max_tokens: 2048,
-        temperature: 0.7,
-      }),
+    const apiUrl = `${PREXZY_BASE}/ai/ai4chat?prompt=${encodeURIComponent(fullPrompt)}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
       signal: controller.signal,
     });
 
@@ -163,19 +113,37 @@ RESPONSE RULES:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API Error:', errorText);
-      throw new Error(`OpenAI Error: ${errorText}`);
+      console.error('Prexzy ai4chat error:', errorText);
+      throw new Error(`Prexzy API Error: ${errorText}`);
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const contentType = response.headers.get('content-type') || '';
+    let content = '';
 
-    if (!content) {
-      console.error('No content in OpenAI response:', data);
-      throw new Error('No response from AI model');
+    if (contentType.includes('application/json')) {
+      const data = await response.json();
+      console.log('Prexzy response JSON keys:', Object.keys(data));
+      content =
+        data.response ||
+        data.result ||
+        data.reply ||
+        data.content ||
+        data.message ||
+        data.text ||
+        data.answer ||
+        (typeof data === 'string' ? data : JSON.stringify(data));
+    } else {
+      content = await response.text();
     }
 
-    console.log('OpenAI response received, length:', content.length);
+    if (!content || content.trim().length === 0) {
+      throw new Error('Empty response from AI');
+    }
+
+    // Strip any leading "PRIMIS AI:" prefix the model might echo back
+    content = content.replace(/^PRIMIS AI:\s*/i, '').trim();
+
+    console.log('Prexzy response received, length:', content.length);
 
     return new Response(
       JSON.stringify({ content }),

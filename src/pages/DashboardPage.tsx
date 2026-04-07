@@ -21,7 +21,15 @@ import {
   Paperclip,
   Loader2,
   Shield,
-  BarChart3
+  BarChart3,
+  BookOpen,
+  Code2,
+  FlaskConical,
+  Globe,
+  Calculator,
+  BrainCircuit,
+  Lightbulb,
+  GraduationCap
 } from 'lucide-react';
 import type { Chat, Message, Persona } from '@/types';
 import ChatMessage from '@/components/features/ChatMessage';
@@ -763,27 +771,58 @@ export default function DashboardPage() {
               )}
 
               {activeChat && messages.length === 0 && (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center space-y-4 px-4">
-                    <Sparkles className="w-12 h-12 lg:w-16 lg:h-16 mx-auto text-primary animate-pulse-glow" />
-                    <p className="text-sm lg:text-base text-muted-foreground max-w-md mx-auto">
-                      Ask me anything. I can help with coding, creative writing, analysis, and more.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto mt-6">
-                      <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Image className="w-4 h-4 text-blue-400" />
-                          <p className="text-sm font-semibold text-blue-300">Image Generation</p>
+                <div className="h-full flex items-center justify-center py-6">
+                  <div className="w-full max-w-3xl px-4 space-y-6">
+                    {/* Welcome */}
+                    <div className="text-center space-y-2">
+                      <div className="flex justify-center">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center">
+                          <GraduationCap className="w-7 h-7 text-cyan-400" />
                         </div>
-                        <p className="text-xs text-blue-400/70">Say "generate image of..." to create AI art</p>
                       </div>
-                      <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Paperclip className="w-4 h-4 text-purple-400" />
-                          <p className="text-sm font-semibold text-purple-300">Vision Analysis</p>
-                        </div>
-                        <p className="text-xs text-purple-400/70">Upload images for AI-powered analysis</p>
-                      </div>
+                      <h3 className="text-lg font-bold text-white">PRIMIS AI — Educational Assistant</h3>
+                      <p className="text-sm text-muted-foreground">Ask me anything or tap a topic below to get started</p>
+                    </div>
+
+                    {/* Learning Topic Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        { icon: Calculator, label: 'Mathematics', prompt: 'Can you help me understand calculus step by step?', color: 'from-blue-500/15 to-cyan-500/15', border: 'border-blue-500/25', text: 'text-blue-300', iconColor: 'text-blue-400' },
+                        { icon: FlaskConical, label: 'Science', prompt: 'Explain the laws of thermodynamics in simple terms', color: 'from-green-500/15 to-emerald-500/15', border: 'border-green-500/25', text: 'text-green-300', iconColor: 'text-green-400' },
+                        { icon: Code2, label: 'Coding', prompt: 'Teach me Python from scratch with examples', color: 'from-purple-500/15 to-pink-500/15', border: 'border-purple-500/25', text: 'text-purple-300', iconColor: 'text-purple-400' },
+                        { icon: Globe, label: 'Languages', prompt: 'Help me practice conversational Spanish', color: 'from-orange-500/15 to-yellow-500/15', border: 'border-orange-500/25', text: 'text-orange-300', iconColor: 'text-orange-400' },
+                        { icon: BookOpen, label: 'Literature', prompt: 'Analyse the themes in Shakespeare\'s Hamlet', color: 'from-pink-500/15 to-rose-500/15', border: 'border-pink-500/25', text: 'text-pink-300', iconColor: 'text-pink-400' },
+                        { icon: BrainCircuit, label: 'AI & Tech', prompt: 'Explain how large language models work', color: 'from-cyan-500/15 to-teal-500/15', border: 'border-cyan-500/25', text: 'text-cyan-300', iconColor: 'text-cyan-400' },
+                      ].map(({ icon: Icon, label, prompt, color, border, text, iconColor }) => (
+                        <button
+                          key={label}
+                          onClick={() => setInput(prompt)}
+                          className={`bg-gradient-to-br ${color} border ${border} rounded-xl p-3 text-left hover:scale-[1.02] transition-all group`}
+                        >
+                          <Icon className={`w-5 h-5 ${iconColor} mb-2`} />
+                          <p className={`text-sm font-semibold ${text}`}>{label}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 group-hover:text-white/60 transition-colors">{prompt}</p>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {[
+                        { label: '📊 Make a table', prompt: 'Create a comparison table of Python vs JavaScript vs TypeScript' },
+                        { label: '🖼️ Generate image', prompt: 'Generate image of a futuristic classroom with AI robots teaching students' },
+                        { label: '💡 Quiz me', prompt: 'Quiz me on world history — ask me 5 questions one at a time' },
+                        { label: '🔍 Explain a concept', prompt: 'Explain quantum entanglement in simple terms with an analogy' },
+                        { label: '✍️ Essay help', prompt: 'Help me write an essay introduction about climate change' },
+                      ].map(({ label, prompt }) => (
+                        <button
+                          key={label}
+                          onClick={() => setInput(prompt)}
+                          className="px-3 py-1.5 bg-muted/40 hover:bg-muted/70 border border-border/50 hover:border-primary/40 rounded-full text-xs text-muted-foreground hover:text-white transition-all"
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
