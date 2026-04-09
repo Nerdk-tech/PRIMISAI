@@ -123,15 +123,40 @@ PRIMIS AI:`;
     if (contentType.includes('application/json')) {
       const data = await response.json();
       console.log('Prexzy response JSON keys:', Object.keys(data));
-      content =
-        data.response ||
-        data.result ||
-        data.reply ||
-        data.content ||
-        data.message ||
-        data.text ||
-        data.answer ||
-        (typeof data === 'string' ? data : JSON.stringify(data));
+
+      // Metadata fields to skip when searching for content
+      const SKIP_KEYS = new Set(['status', 'owner', 'version', 'model', 'api', 'code', 'error', 'success', 'ok']);
+
+      // 1. Try known content field names first
+      const CONTENT_KEYS = ['response', 'result', 'reply', 'content', 'message', 'text', 'answer', 'data', 'output', 'completion', 'choices'];
+      for (const key of CONTENT_KEYS) {
+        if (data[key] && typeof data[key] === 'string' && data[key].trim().length > 0) {
+          content = data[key].trim();
+          break;
+        }
+        // Handle OpenAI-style choices array
+        if (key === 'choices' && Array.isArray(data.choices) && data.choices[0]) {
+          const choice = data.choices[0];
+          content = choice?.message?.content || choice?.text || '';
+          if (content) break;
+        }
+      }
+
+      // 2. If still empty, scan all string values and pick the longest non-metadata one
+      if (!content || content.trim().length < 3) {
+        let longest = '';
+        for (const [key, val] of Object.entries(data)) {
+          if (!SKIP_KEYS.has(key.toLowerCase()) && typeof val === 'string' && val.length > longest.length) {
+            longest = val;
+          }
+        }
+        if (longest.length > 3) content = longest;
+      }
+
+      // 3. Last resort fallback
+      if (!content || content.trim().length < 3) {
+        content = JSON.stringify(data);
+      }
     } else {
       content = await response.text();
     }
