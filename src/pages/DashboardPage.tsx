@@ -29,7 +29,9 @@ import {
   Calculator,
   BrainCircuit,
   Lightbulb,
-  GraduationCap
+  GraduationCap,
+  Library,
+  Sigma
 } from 'lucide-react';
 import type { Chat, Message, Persona } from '@/types';
 import ChatMessage from '@/components/features/ChatMessage';
@@ -43,6 +45,8 @@ import AnalyticsPanel from '@/components/features/AnalyticsPanel';
 import QuizPanel from '@/components/features/QuizPanel';
 import WaecPanel from '@/components/features/WaecPanel';
 import StudyTimer from '@/components/features/StudyTimer';
+import NotesLibraryPanel from '@/components/features/NotesLibraryPanel';
+import MathSolverPanel from '@/components/features/MathSolverPanel';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -78,6 +82,8 @@ export default function DashboardPage() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [showWaec, setShowWaec] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
+  const [showNotesLibrary, setShowNotesLibrary] = useState(false);
+  const [showMathSolver, setShowMathSolver] = useState(false);
 
   // Save note handler
   const handleSaveNote = async (content: string) => {
@@ -744,6 +750,22 @@ export default function DashboardPage() {
             Study Timer
           </Button>
           <Button
+            onClick={() => { setShowMathSolver(true); setSidebarOpen(false); }}
+            variant="ghost"
+            className="w-full justify-start text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+          >
+            <Sigma className="w-4 h-4 mr-2" />
+            Math Solver
+          </Button>
+          <Button
+            onClick={() => { setShowNotesLibrary(true); setSidebarOpen(false); }}
+            variant="ghost"
+            className="w-full justify-start text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+          >
+            <Library className="w-4 h-4 mr-2" />
+            Notes Library
+          </Button>
+          <Button
             onClick={() => setShowSettings(true)}
             variant="ghost"
             className="w-full justify-start"
@@ -1040,6 +1062,16 @@ export default function DashboardPage() {
       {/* WAEC Panel */}
       {showWaec && (
         <WaecPanel onClose={() => setShowWaec(false)} />
+      )}
+
+      {/* Notes Library */}
+      {showNotesLibrary && (
+        <NotesLibraryPanel onClose={() => setShowNotesLibrary(false)} />
+      )}
+
+      {/* Math Solver */}
+      {showMathSolver && (
+        <MathSolverPanel onClose={() => setShowMathSolver(false)} />
       )}
 
       {/* Study Timer */}

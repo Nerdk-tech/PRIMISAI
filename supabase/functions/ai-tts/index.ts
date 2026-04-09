@@ -3,13 +3,15 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 const elevenlabsKey = Deno.env.get('ELEVENLABS_API_KEY');
 
-// Map voice names to ElevenLabs voice IDs
+// Map voice names to ElevenLabs voice IDs (updated with high-quality voices)
 const VOICE_MAP: Record<string, string> = {
-  'alloy': 'pNInz6obpgDQGcFmaJgB',   // Adam (male)
-  'echo': 'ErXwobaYiN019PkySvjV',    // Antoni (male)
-  'fable': 'VR6AewLTigWG4xSOukaG',   // Arnold (male)
-  'nova': 'EXAVITQu4vr4xnSDxMaL',    // Bella (female)
-  'shimmer': 'MF3mGyEYCl7XYWbV9V6O', // Elli (female)
+  // Male voices
+  'alloy':   'pNInz6obpgDQGcFmaJgB',   // Adam — deep, authoritative male
+  'echo':    'TxGEqnHWrfWFTfGW9XjX',   // Josh — warm, conversational male
+  'fable':   'g5CIjZEefAph4nQFvHAz',   // Ethan — clear, young male
+  // Female voices
+  'nova':    'EXAVITQu4vr4xnSDxMaL',   // Bella — warm, expressive female
+  'shimmer': 'jsCqWAovK2LkecY7zXl4',   // Dorothy — calm, professional female
 };
 
 Deno.serve(async (req) => {
@@ -56,10 +58,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         text: text,
-        model_id: 'eleven_multilingual_v2',
+        model_id: 'eleven_turbo_v2_5',
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
+          stability: 0.55,
+          similarity_boost: 0.80,
+          style: 0.05,
+          use_speaker_boost: true,
         },
       }),
     });
