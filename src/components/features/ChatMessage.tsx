@@ -3,8 +3,6 @@ import type { Message } from '@/types';
 import { User, Sparkles, Copy, Check, Maximize2, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
@@ -66,8 +64,7 @@ export default function ChatMessage({ message, onSaveNote }: ChatMessageProps) {
             prose-strong:text-white
             prose-code:text-cyan-300 prose-code:bg-white/10 prose-code:rounded prose-code:px-1">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}
+              remarkPlugins={[remarkGfm]}
               components={{
                 table({ children }) {
                   return (

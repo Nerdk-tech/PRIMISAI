@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* KaTeX math rendering */
-@import 'katex/dist/katex.min.css';
-
 @keyframes shimmer {
   0% {
     transform: translateX(-100%);

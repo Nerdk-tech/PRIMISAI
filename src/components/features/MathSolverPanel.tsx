@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { Calculator, X, Loader2, Send, RotateCcw, Copy, Check, Sigma } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
-import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
@@ -20,7 +18,7 @@ interface SolveResult {
 
 const EXAMPLE_PROBLEMS = [
   { label: 'Quadratic', text: 'Solve: x² - 5x + 6 = 0' },
-  { label: 'Integration', text: 'Find ∫(3x² + 2x - 1)dx' },
+  { label: 'Integration', text: 'Find the integral of 3x² + 2x - 1' },
   { label: 'Word Problem', text: 'A train travels 300km in 2.5 hours. What is its average speed?' },
   { label: 'Simultaneous', text: 'Solve: 2x + 3y = 12 and x - y = 1' },
   { label: 'Probability', text: 'A bag has 4 red and 6 blue balls. What is P(red)?'},
@@ -45,11 +43,12 @@ Problem: ${problem}
 
 Instructions:
 - Show ALL working steps clearly numbered
-- Use LaTeX math notation wrapped in $...$ for inline math or $$...$$ for display math
+- Write math expressions in plain readable text (e.g. x^2 + 5x + 6 = 0, not LaTeX)
 - Explain each step in plain English
 - State the final answer clearly at the end
 - If it's a word problem, identify the known values, the unknown, and set up equations first
-- Be thorough and educational — this is for students learning`;
+- Be thorough and educational — this is for students learning
+- Use markdown tables if comparing values or showing structured data`;
 
       const apiUrl = `https://apis.prexzyvilla.site/ai/ai4chat?prompt=${encodeURIComponent(prompt)}`;
       const res = await fetch(apiUrl);
@@ -112,7 +111,7 @@ Instructions:
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Math Solver</h2>
-              <p className="text-xs text-blue-400/70">Step-by-step solutions with KaTeX rendering</p>
+              <p className="text-xs text-blue-400/70">Step-by-step solutions with clear working</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors">
@@ -164,7 +163,7 @@ Instructions:
               <div className="text-center space-y-1">
                 <p className="text-white font-medium">Enter a math problem above</p>
                 <p className="text-xs text-muted-foreground max-w-xs">
-                  Get step-by-step solutions rendered with proper math notation, tables, and explanations
+                  Get step-by-step solutions with tables and explanations
                 </p>
               </div>
             </div>
@@ -206,8 +205,7 @@ Instructions:
                   prose-td:border prose-td:border-white/10 prose-td:px-3 prose-td:py-2
                   prose-code:text-cyan-300 prose-code:bg-white/10 prose-code:rounded prose-code:px-1">
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
+                    remarkPlugins={[remarkGfm]}
                     components={{
                       table({ children }) {
                         return (

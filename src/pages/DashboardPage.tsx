@@ -31,7 +31,8 @@ import {
   Lightbulb,
   GraduationCap,
   Library,
-  Sigma
+  Sigma,
+  Monitor
 } from 'lucide-react';
 import type { Chat, Message, Persona } from '@/types';
 import ChatMessage from '@/components/features/ChatMessage';
@@ -47,6 +48,7 @@ import WaecPanel from '@/components/features/WaecPanel';
 import StudyTimer from '@/components/features/StudyTimer';
 import NotesLibraryPanel from '@/components/features/NotesLibraryPanel';
 import MathSolverPanel from '@/components/features/MathSolverPanel';
+import CBTPanel from '@/components/features/CBTPanel';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -84,6 +86,7 @@ export default function DashboardPage() {
   const [showTimer, setShowTimer] = useState(false);
   const [showNotesLibrary, setShowNotesLibrary] = useState(false);
   const [showMathSolver, setShowMathSolver] = useState(false);
+  const [showCBT, setShowCBT] = useState(false);
 
   // Save note handler
   const handleSaveNote = async (content: string) => {
@@ -758,6 +761,14 @@ export default function DashboardPage() {
             Math Solver
           </Button>
           <Button
+            onClick={() => { setShowCBT(true); setSidebarOpen(false); }}
+            variant="ghost"
+            className="w-full justify-start text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+          >
+            <Monitor className="w-4 h-4 mr-2" />
+            CBT Mode
+          </Button>
+          <Button
             onClick={() => { setShowNotesLibrary(true); setSidebarOpen(false); }}
             variant="ghost"
             className="w-full justify-start text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
@@ -1072,6 +1083,11 @@ export default function DashboardPage() {
       {/* Math Solver */}
       {showMathSolver && (
         <MathSolverPanel onClose={() => setShowMathSolver(false)} />
+      )}
+
+      {/* CBT Mode */}
+      {showCBT && (
+        <CBTPanel onClose={() => setShowCBT(false)} />
       )}
 
       {/* Study Timer */}
